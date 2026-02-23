@@ -1,0 +1,26 @@
+{"id":1,"tutorial_id":1,"block_type":"SET_VARIABLE","block_order":1,"block_config":{"value": {"type": "INPUT", "prompt": "How are you?"}, "variable": "A"},"created_at":"2026-01-20T13:05:05.710358","parent_id":null}
+{"id":2,"tutorial_id":1,"block_type":"PRINT","block_order":2,"block_config":{"variable": "A"},"created_at":"2026-01-20T13:05:32.405102","parent_id":null}
+{"id":3,"tutorial_id":2,"block_type":"SET_VARIABLE","block_order":1,"block_config":{"type": "STRING", "value": "I am a coder!", "variable": "A"},"created_at":"2026-01-21T12:18:37.803842","parent_id":null}
+{"id":4,"tutorial_id":2,"block_type":"PRINT","block_order":2,"block_config":{"variable": "A"},"created_at":"2026-01-21T12:18:59.638691","parent_id":null}
+{"id":5,"tutorial_id":3,"block_type":"SET_VARIABLE","block_order":1,"block_config":{"type": "CREATE_TURTLE", "variable": "line"},"created_at":"2026-01-21T13:51:33.725352","parent_id":null}
+{"id":6,"tutorial_id":3,"block_type":"TURTLE_MOVE","block_order":2,"block_config":{"value": 100, "variable": "line", "direction": "FORWARD"},"created_at":"2026-01-21T13:51:33.725352","parent_id":null}
+{"id":7,"tutorial_id":5,"block_type":"SET_VARIABLE","block_order":1,"block_config":{"type": "CREATE_TURTLE", "variable": "turtle"},"created_at":"2026-01-24T13:53:20.810491","parent_id":null}
+{"id":9,"tutorial_id":5,"block_type":"TURTLE_STYLE","block_order":3,"block_config":{"color": "GREEN", "action": "SET_FILL_COLOR", "variable": "turtle"},"created_at":"2026-01-24T13:54:28.966848","parent_id":null}
+{"id":10,"tutorial_id":5,"block_type":"TURTLE_DRAW","block_order":4,"block_config":{"action": "DOT", "radius": 100, "variable": "turtle"},"created_at":"2026-01-24T13:54:57.802303","parent_id":null}
+{"id":11,"tutorial_id":4,"block_type":"SET_VARIABLE","block_order":1,"block_config":{"type": "CREATE_TURTLE", "variable": "turtle"},"created_at":"2026-02-11T10:29:11.860935","parent_id":null}
+{"id":12,"tutorial_id":4,"block_type":"TURTLE_STYLE","block_order":2,"block_config":{"shape": "triangle", "action": "SET_SHAPE", "variable": "turtle"},"created_at":"2026-02-11T10:29:11.860935","parent_id":null}
+{"id":13,"tutorial_id":4,"block_type":"TURTLE_STYLE","block_order":3,"block_config":{"width": 5, "action": "SET_WIDTH", "variable": "turtle"},"created_at":"2026-02-11T10:29:11.860935","parent_id":null}
+{"id":14,"tutorial_id":4,"block_type":"TURTLE_MOTION","block_order":4,"block_config":{"action": "FORWARD", "distance": 100, "variable": "turtle"},"created_at":"2026-02-11T10:29:11.860935","parent_id":null}
+{"id":8,"tutorial_id":5,"block_type":"TURTLE_SCREEN","block_order":2,"block_config":{"color": "BLUE", "action": "SET_BACKGROUND_COLOR"},"created_at":"2026-01-24T13:53:59.192151","parent_id":null}
+{"id":15,"tutorial_id":6,"block_type":"FACIAL_LOAD_IMAGE","block_order":1,"block_config":{"action": "LOAD_IMAGE", "variable": "image"},"created_at":"2026-02-12T18:17:11.536869","parent_id":null}
+{"id":16,"tutorial_id":6,"block_type":"FACIAL_GET_COUNT","block_order":2,"block_config":{"action": "GET_FACE_COUNT", "target": "image"},"created_at":"2026-02-12T18:17:11.536869","parent_id":null}
+{"id":17,"tutorial_id":7,"block_type":"CV_LOAD_IMAGE","block_order":1,"block_config":{"action": "LOAD_IMAGE", "variable": "image"},"created_at":"2026-02-12T21:51:50.469491","parent_id":null}
+{"id":18,"tutorial_id":7,"block_type":"CV_PUT_TEXT","block_order":2,"block_config":{"x": 100, "y": 100, "font": "SIMPLEX", "size": 2, "text": "Hello", "color": {"b": 0, "g": 0, "r": 255}, "action": "PUT_TEXT", "variable": "image", "thickness": 2},"created_at":"2026-02-12T21:51:50.469491","parent_id":null}
+{"id":19,"tutorial_id":7,"block_type":"CV_SHOW_IMAGE","block_order":3,"block_config":{"action": "SHOW_IMAGE", "variable": "image"},"created_at":"2026-02-12T21:51:50.469491","parent_id":null}
+{"id":20,"tutorial_id":8,"block_type":"FACIAL_LOAD_IMAGE","block_order":1,"block_config":{"action": "LOAD_IMAGE", "variable": "image"},"created_at":"2026-02-12T22:03:58.458534","parent_id":null}
+{"id":21,"tutorial_id":8,"block_type":"FACIAL_GET_GENDER","block_order":2,"block_config":{"action": "GET_GENDER", "gender": "male"},"created_at":"2026-02-12T22:03:58.458534","parent_id":null}
+{"id":22,"tutorial_id":9,"block_type":"FINGER_START_DETECTION","block_order":1,"block_config":{"action": "START_DETECTION"},"created_at":"2026-02-13T00:01:15.59545","parent_id":null}
+{"id":23,"tutorial_id":9,"block_type":"CONTROLS_REPEAT","block_order":2,"block_config":{"times": 30, "action": "REPEAT"},"created_at":"2026-02-13T00:01:15.59545","parent_id":null}
+{"id":24,"tutorial_id":9,"block_type":"FINGER_GET_COUNT","block_order":1,"block_config":{"action": "GET_FINGER_COUNT"},"created_at":"2026-02-13T00:02:35.108239","parent_id":23}
+{"id":25,"tutorial_id":9,"block_type":"FINGER_SET_DELAY","block_order":2,"block_config":{"action": "SET_DELAY", "seconds": 2},"created_at":"2026-02-13T00:02:35.108239","parent_id":23}
+{"id":26,"tutorial_id":9,"block_type":"FINGER_STOP_DETECTION","block_order":3,"block_config":{"action": "STOP_DETECTION"},"created_at":"2026-02-13T00:02:35.108239","parent_id":null}
