@@ -13,28 +13,34 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
+const handleLogin = async (e: React.FormEvent) => {
   e.preventDefault();
 
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    alert(data.message);
+  if (!email || !password) {
+    alert("Email and password required");
     return;
   }
 
-  localStorage.setItem("userId", data.user.UserId);
-  localStorage.setItem("userEmail", data.user.Email);
+  try {
+    const result = await window.electronAPI.loginUser({
+      email,
+      password,
+    });
 
-  router.push("/dashboard");
+    if (!result.success) {
+      alert(result.message);
+      return;
+    }
+
+    localStorage.setItem("userId", result.user.UserId);
+    localStorage.setItem("userEmail", result.user.Email);
+
+    router.push("/dashboard");
+  } catch (err) {
+    console.error("Login failed:", err);
+    alert("Something went wrong");
+  }
 };
-
 
   const handleGoogleLogin = () => {
     localStorage.setItem("userEmail", "akshatsinghal0204@gmail.com");

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import pool from "@/lib/db";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { rateLimit } from "@/lib/rateLimit";
