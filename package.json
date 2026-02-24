@@ -101,20 +101,31 @@
     "wait-on": "^9.0.4"
   },
   "build": {
-    "appId": "com.blockly.desktop",
-    "productName": "Blockly Desktop",
-    "files": [
-      "**/*"
-    ],
-    "forceCodeSigning": false,
-    "win": {
-      "target": "nsis"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true
-    },
-    "publish": null
+  "appId": "com.blockly.desktop",
+  "productName": "Blockly Desktop",
+
+  "files": [
+    "electron.js",
+    "preload.js",
+    "package.json",
+    ".next/standalone/**/*",
+    ".next/static/**/*",
+    "public/**/*",
+    "node_modules/**/*"
+  ],
+
+  "asarUnpack": [
+    ".next/**/*"
+  ],
+
+  "win": {
+    "target": "nsis"
+  },
+
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true
   }
+}
 }

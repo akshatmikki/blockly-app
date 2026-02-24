@@ -23,15 +23,29 @@ function createWindow() {
 
   const isDev = !app.isPackaged
 
-  if (isDev) {
-    // DEV MODE → load localhost
-    mainWindow.loadURL("http://localhost:3000")
-  } else {
-    // PRODUCTION MODE → load built Next files
-    mainWindow.loadFile(
-      path.join(__dirname, ".next/server/app/index.html")
-    )
+if (isDev) {
+  mainWindow.loadURL("http://localhost:3000")
+} else {
+  const serverPath = path.join(
+    process.resourcesPath,
+    "app.asar.unpacked",
+    ".next",
+    "standalone",
+    "server.js"
+  )
+
+  console.log("Starting Next server from:", serverPath)
+
+  try {
+    require(serverPath)
+  } catch (err) {
+    console.error("Failed to start Next server:", err)
   }
+
+  setTimeout(() => {
+    mainWindow.loadURL("http://localhost:3000")
+  }, 3000)
+}
 
   mainWindow.on("closed", () => {
     mainWindow = null

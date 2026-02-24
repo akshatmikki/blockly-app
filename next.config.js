@@ -1,11 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",   // 🔥 CRITICAL FIX
+
   typescript: {
     ignoreBuildErrors: true,
   },
+
   images: {
     unoptimized: true,
   },
 }
 
-export default nextConfig
+module.exports = nextConfig
