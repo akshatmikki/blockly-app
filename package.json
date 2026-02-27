@@ -108,14 +108,14 @@
     "electron.js",
     "preload.js",
     "package.json",
-    ".next/standalone/**/*",
-    ".next/static/**/*",
-    "public/**/*",
-    "node_modules/**/*"
+    "out/**/*"
   ],
 
-  "asarUnpack": [
-    ".next/**/*"
+  "extraResources": [
+    {
+      "from": "database.sqlite",
+      "to": "database.sqlite"
+    }
   ],
 
   "win": {

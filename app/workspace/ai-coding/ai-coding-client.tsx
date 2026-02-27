@@ -4435,33 +4435,45 @@ const cameraWrapperRef = useRef<any>(null);
   }
 
   useEffect(() => {
-    if (!workspaceReady) {
-      debugLog("⏳ Waiting for workspaceReady");
-      return;
-    }
+  if (!workspaceReady) {
+    debugLog("⏳ Waiting for workspaceReady");
+    return;
+  }
 
-    const workspace = workspaceRef.current;
-    if (!workspace) {
-      debugLog("❌ workspaceReady but workspace missing");
-      return;
-    }
+  const workspace = workspaceRef.current;
+  if (!workspace) {
+    debugLog("❌ workspaceReady but workspace missing");
+    return;
+  }
 
-    if (mode === "ACTIVITY" && activityId) {
-      debugLog(`📦 Loading blocks for activity ${activityId}`);
-      fetch(`/api/tutorials/activity/${activityId}/blocks`)
-        .then(res => res.json())
-        .then(loadBlocksIntoWorkspace)
-        .catch(console.error);
-    }
+  const loadBlocks = async () => {
+    try {
+      let data = [];
 
-    if (mode === "PROJECT" && projectId) {
-      debugLog(`📦 Loading blocks for project ${projectId}`);
-      fetch(`/api/project/${projectId}/blocks`)
-        .then(res => res.json())
-        .then(loadBlocksIntoWorkspace)
-        .catch(console.error);
+      if (mode === "ACTIVITY" && activityId) {
+        debugLog(`📦 Loading blocks for activity ${activityId}`);
+        data = await window.electronAPI.getBlocksByTutorial(
+          Number(activityId)
+        );
+      }
+
+      if (mode === "PROJECT" && projectId) {
+        debugLog(`📦 Loading blocks for project ${projectId}`);
+        data = await window.electronAPI.getProjectBlocks(
+          Number(projectId)
+        );
+      }
+
+      loadBlocksIntoWorkspace(data);
+
+    } catch (error) {
+      console.error("Failed to load blocks:", error);
     }
-  }, [workspaceReady, mode, activityId, projectId]);
+  };
+
+  loadBlocks();
+
+}, [workspaceReady, mode, activityId, projectId]);
 
   // Initialize TensorFlow.js backend on component mount
   useEffect(() => {

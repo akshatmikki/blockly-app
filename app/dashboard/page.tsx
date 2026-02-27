@@ -64,48 +64,48 @@ export default function DashboardPage() {
 
   /* ---------- LOAD PROJECTS ---------- */
   const loadProjects = async () => {
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-      setProjects([]);
-      return;
-    }
+  const userId = localStorage.getItem("userId");
 
-    try {
-      const res = await fetch(`/api/project/list?userId=${userId}`);
-      const data = await res.json();
+  if (!userId) {
+    setProjects([]);
+    return;
+  }
 
-      if (Array.isArray(data)) {
-        setProjects(data);
-      } else {
-        console.error("Expected array, got:", data);
-        setProjects([]);
-      }
-    } catch (err) {
-      console.error("Load projects failed", err);
+  try {
+    const data = await window.electronAPI.getProjects(Number(userId));
+
+    if (Array.isArray(data)) {
+      setProjects(data);
+    } else {
+      console.error("Expected array, got:", data);
       setProjects([]);
     }
-  };
+  } catch (err) {
+    console.error("Load projects failed", err);
+    setProjects([]);
+  }
+};
   const handleBackFromCreate = () => {
     setShowModal(false);
     setProjectName("");
     setIsCreatingNewProject(false);
   };
 
-  const loadTutorialCounts = async () => {
-    try {
-      const res = await fetch("/api/tutorials/count")
-      const data = await res.json()
+ const loadTutorialCounts = async () => {
+  try {
+    const data = await window.electronAPI.getTutorialCounts();
 
-      const mapped: Record<string, number> = {}
-      data.forEach((row: any) => {
-        mapped[row.type] = Number(row.tutorial_count)
-      })
+    const mapped: Record<string, number> = {};
 
-      setTutorialCounts(mapped)
-    } catch (err) {
-      console.error("Failed to load tutorial counts", err)
-    }
+    data.forEach((row: any) => {
+      mapped[row.type] = Number(row.tutorial_count);
+    });
+
+    setTutorialCounts(mapped);
+  } catch (err) {
+    console.error("Failed to load tutorial counts", err);
   }
+};
 
   /* ---------- AUTH ---------- */
   useEffect(() => {
@@ -120,24 +120,21 @@ export default function DashboardPage() {
 
   /* ---------- CREATE PROJECT ---------- */
   const createProjectAndRedirect = async () => {
-    const userId = localStorage.getItem("userId");
+  const userId = localStorage.getItem("userId");
 
-    if (!projectName.trim()) {
-      alert("Project name required");
-      return;
-    }
+  if (!projectName.trim()) {
+    alert("Project name required");
+    return;
+  }
 
-    const res = await fetch("/api/project/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectName, userId }),
+  try {
+    const response = await window.electronAPI.createProject({
+      projectName,
+      userId: Number(userId),
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("Create project failed:", data);
-      alert(data.message || "Failed to create project");
+    if (!response?.success) {
+      alert("Failed to create project");
       return;
     }
 
@@ -146,8 +143,15 @@ export default function DashboardPage() {
     setProjectName("");
     setIsCreatingNewProject(false);
 
-    router.push(`${selectedModule.href}?projectId=${data.projectId}`);
-  };
+    router.push(
+      `${selectedModule.href}?projectId=${response.projectId}`
+    );
+
+  } catch (error) {
+    console.error("Create project failed:", error);
+    alert("Failed to create project");
+  }
+};
 
   /* ---------- SELECT PROJECT ---------- */
   const openProject = (projectId: number) => {

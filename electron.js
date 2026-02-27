@@ -19,46 +19,44 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-  })
+  });
 
-  const isDev = !app.isPackaged
+  const isDev = !app.isPackaged;
 
-if (isDev) {
-  mainWindow.loadURL("http://localhost:3000")
-} else {
-  const serverPath = path.join(
-    process.resourcesPath,
-    "app.asar.unpacked",
-    ".next",
-    "standalone",
-    "server.js"
-  )
-
-  console.log("Starting Next server from:", serverPath)
-
-  try {
-    require(serverPath)
-  } catch (err) {
-    console.error("Failed to start Next server:", err)
+  if (isDev) {
+    // Development mode (when running npm run dev)
+    mainWindow.loadURL("http://localhost:3000");
+  } else {
+    // Production mode (fully offline)
+    mainWindow.loadFile(
+      path.join(__dirname, "../out/index.html")
+    );
   }
 
-  setTimeout(() => {
-    mainWindow.loadURL("http://localhost:3000")
-  }, 3000)
-}
-
   mainWindow.on("closed", () => {
-    mainWindow = null
-  })
+    mainWindow = null;
+  });
 }
-
 // ----------------------------
 // APP READY
 // ----------------------------
 app.whenReady().then(() => {
   // ✅ Setup SQLite inside Electron ONLY
-  const dbPath = path.join(app.getPath("userData"), "database.sqlite")
+  let dbPath
+
+if (!app.isPackaged) {
+  // DEV MODE
+  dbPath = path.join(__dirname, "database.sqlite")
+} else {
+  // PRODUCTION MODE (inside installed app)
+  dbPath = path.join(process.resourcesPath, "database.sqlite")
+}
+
+db = new Database(dbPath)
+
+console.log("Using database at:", dbPath)
   db = new Database(dbPath)
+  console.log(dbPath)
 
   // ----------------------------
   // LOGIN IPC HANDLER
@@ -114,6 +112,167 @@ app.whenReady().then(() => {
     }
   })
 
+  // ----------------------------
+// ADDITIONAL IPC HANDLERS
+// ----------------------------
+
+// 1️⃣ GET TUTORIAL COUNTS
+ipcMain.handle("get-tutorial-counts", () => {
+  try {
+    const stmt = db.prepare(`
+      SELECT
+        type,
+        COUNT(*) AS tutorial_count
+      FROM tutorial_master
+      GROUP BY type
+      ORDER BY type
+    `)
+
+    return stmt.all()
+  } catch (err) {
+    console.error("TUTORIAL COUNT ERROR:", err.message)
+    return []
+  }
+})
+
+
+// 2️⃣ GET ACTIVITIES BY TYPE
+ipcMain.handle("get-activities-by-type", (event, type) => {
+  try {
+    const stmt = db.prepare(`
+      SELECT
+        ta.id,
+        ta.activity_name,
+        ta.level,
+        ta.pdf_url,
+        ta.video_url,
+        ta.activity_order
+      FROM tutorial_activity ta
+      JOIN tutorial_master tm
+        ON tm.id = ta.tutorial_id
+      WHERE UPPER(tm.type) = ?
+      ORDER BY ta.activity_order
+    `)
+
+    return stmt.all(type.toUpperCase())
+  } catch (err) {
+    console.error("ACTIVITY ERROR:", err.message)
+    return []
+  }
+})
+
+
+// 3️⃣ GET BLOCKS BY TUTORIAL ID
+ipcMain.handle("get-blocks-by-tutorial", (event, tutorialId) => {
+  try {
+    const stmt = db.prepare(`
+      SELECT
+        id,
+        block_type,
+        block_order,
+        block_config,
+        parent_id
+      FROM tutorial_blocks
+      WHERE tutorial_id = ?
+      ORDER BY block_order
+    `)
+
+    return stmt.all(tutorialId)
+  } catch (err) {
+    console.error("BLOCK ERROR:", err.message)
+    return []
+  }
+})
+
+
+// 4️⃣ GET PROJECTS BY USER ID
+ipcMain.handle("get-projects", (event, userId) => {
+  try {
+    const stmt = db.prepare(`
+      SELECT
+        projectid,
+        projectname,
+        createdon
+      FROM projectmaster
+      WHERE userid = ?
+      ORDER BY createdon DESC
+    `)
+
+    return stmt.all(userId)
+  } catch (err) {
+    console.error("GET PROJECT ERROR:", err.message)
+    return []
+  }
+})
+
+
+// 5️⃣ CREATE PROJECT
+ipcMain.handle("create-project", (event, { projectName, userId }) => {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO projectmaster
+        (projectname, userid, createdby, createdon, status)
+      VALUES
+        (?, ?, ?, datetime('now'), 1)
+    `)
+
+    const result = stmt.run(projectName, userId, userId)
+
+    return {
+      success: true,
+      projectId: result.lastInsertRowid,
+    }
+  } catch (err) {
+    console.error("CREATE PROJECT ERROR:", err.message)
+    return { success: false }
+  }
+})
+
+
+// 6️⃣ DELETE PROJECT
+ipcMain.handle("delete-project", (event, projectId) => {
+  try {
+    const stmt = db.prepare(`
+      DELETE FROM projectmaster
+      WHERE projectid = ?
+    `)
+
+    stmt.run(projectId)
+
+    return { success: true }
+  } catch (err) {
+    console.error("DELETE PROJECT ERROR:", err.message)
+    return { success: false }
+  }
+})
+
+
+// 7️⃣ LOGOUT (just return success, frontend clears token)
+ipcMain.handle("logout-user", () => {
+  return { success: true }
+})
+
+// GET PROJECT BLOCKS
+ipcMain.handle("get-project-blocks", (event, projectId) => {
+  try {
+    const stmt = db.prepare(`
+      SELECT
+        id,
+        block_type,
+        block_order,
+        block_config,
+        parent_id
+      FROM tutorial_blocks
+      WHERE tutorial_id = ?
+      ORDER BY block_order
+    `)
+
+    return stmt.all(projectId)
+  } catch (err) {
+    console.error("PROJECT BLOCK ERROR:", err.message)
+    return []
+  }
+})
   createWindow()
 })
 

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",   // 🔥 CRITICAL FIX
+  output: "export",   // 🔥 CRITICAL FIX
 
   typescript: {
     ignoreBuildErrors: true,
