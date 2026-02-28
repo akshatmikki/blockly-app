@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",   // 🔥 CRITICAL FIX
+  output: "export",
 
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  assetPrefix: "./",
 
   images: {
     unoptimized: true,

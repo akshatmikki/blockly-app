@@ -16,10 +16,11 @@ export default function TutorialActivitiesPage() {
   const [loading, setLoading] = useState(true)
 
  useEffect(() => {
+  if (!type || typeof type !== "string") return;
+
   const loadActivities = async () => {
     try {
       const data = await window.electronAPI.getActivitiesByType(type);
-
       setActivities(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to load activities:", err);
@@ -29,10 +30,9 @@ export default function TutorialActivitiesPage() {
     }
   };
 
-  if (type) {
-    loadActivities();
-  }
+  loadActivities();
 }, [type]);
+
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">

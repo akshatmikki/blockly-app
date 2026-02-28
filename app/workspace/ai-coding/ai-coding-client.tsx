@@ -7,7 +7,7 @@ import 'blockly/blocks';
 import Sk from 'skulpt';
 import 'skulpt/dist/skulpt-stdlib.js';
 import { useSearchParams } from "next/navigation"
-import { javascriptGenerator } from "blockly/javascript";
+import { javascriptGenerator, Order } from "blockly/javascript";
 import Script from "next/script";
 import { Hands } from "@mediapipe/hands";
 import * as faceapi from "face-api.js";
@@ -32,31 +32,45 @@ const turtleEngineRef = { current: null as any };
 const variablesRef = { current: {} as Record<string, any> }
 class CleanNumberInput extends Blockly.FieldNumber {
   showEditor_() {
-    // Hide SVG text
-    this.textElement_.style.display = 'none';
+    if (this.textElement_) {
+      this.textElement_.style.display = 'none';
+    }
 
     super.showEditor_();
 
-    const oldDispose = this.htmlInput_.onblur;
-    this.htmlInput_.onblur = (e) => {
-      this.textElement_.style.display = '';
-      oldDispose?.(e);
+    if (!this.htmlInput_) return;
+
+    const input = this.htmlInput_;   // ✅ store locally
+    const oldDispose = input.onblur;
+
+    input.onblur = (e) => {
+      if (this.textElement_) {
+        this.textElement_.style.display = '';
+      }
+
+      oldDispose?.call(input, e);    // ✅ now input is NOT null
     };
   }
 }
-
 class CleanTextInput extends Blockly.FieldTextInput {
   showEditor_() {
-    // Hide SVG text
-    this.textElement_.style.display = 'none';
+    if (this.textElement_) {
+      this.textElement_.style.display = 'none';
+    }
 
     super.showEditor_();
 
-    // When editing ends, show SVG text again
-    const oldDispose = this.htmlInput_.onblur;
-    this.htmlInput_.onblur = (e) => {
-      this.textElement_.style.display = '';
-      oldDispose?.(e);
+    if (!this.htmlInput_) return;
+
+    const input = this.htmlInput_;
+    const oldDispose = input.onblur;
+
+    input.onblur = (e) => {
+      if (this.textElement_) {
+        this.textElement_.style.display = '';
+      }
+
+      oldDispose?.call(input, e);
     };
   }
 }
@@ -776,7 +790,7 @@ const defineBlocks = () => {
   };
 
 
-  function pygalChartBlock(type, label) {
+  function pygalChartBlock(type: string, label: string) {
     Blockly.Blocks[`pygal_${type}`] = {
       init: function () {
         this.appendDummyInput()
@@ -2779,31 +2793,31 @@ const defineJavascriptGenerators = () => {
 
 
   javascriptGenerator.forBlock['colour_red'] = function () {
-    return ['"red"', javascriptGenerator.ORDER_ATOMIC];
+    return ['"red"', Order.ATOMIC];
   };
 
   javascriptGenerator.forBlock['colour_green'] = function () {
-    return ['"green"', javascriptGenerator.ORDER_ATOMIC];
+    return ['"green"', Order.ATOMIC];
   };
 
   javascriptGenerator.forBlock['colour_blue'] = function () {
-    return ['"blue"', javascriptGenerator.ORDER_ATOMIC];
+    return ['"blue"', Order.ATOMIC];
   };
 
   javascriptGenerator.forBlock['colour_yellow'] = function () {
-    return ['"yellow"', javascriptGenerator.ORDER_ATOMIC];
+    return ['"yellow"', Order.ATOMIC];
   };
 
   javascriptGenerator.forBlock['colour_purple'] = function () {
-    return ['"purple"', javascriptGenerator.ORDER_ATOMIC];
+    return ['"purple"', Order.ATOMIC];
   };
 
   javascriptGenerator.forBlock['colour_pink'] = function () {
-    return ['"pink"', javascriptGenerator.ORDER_ATOMIC];
+    return ['"pink"', Order.ATOMIC];
   };
   javascriptGenerator.forBlock['colour_picker'] = function (block) {
     const color = block.getFieldValue('COLOUR');
-    return [`"${color}"`, javascriptGenerator.ORDER_ATOMIC];
+    return [`"${color}"`, Order.ATOMIC];
   };
 
 
@@ -2886,10 +2900,21 @@ const defineJavascriptGenerators = () => {
 
   javascriptGenerator.forBlock["turtle_pendown"] = () =>
     "__turtle.penDown();\n";
-
   javascriptGenerator.forBlock["turtle_width"] = function (block) {
-    const t = javascriptGenerator.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
-    const w = javascriptGenerator.valueToCode(block, "WIDTH", javascriptGenerator.ORDER_NONE) || "1";
+    if (!javascriptGenerator.nameDB_) return "";
+
+    const t = javascriptGenerator.nameDB_.getName(
+      block.getFieldValue("VAR"),
+      Blockly.Names.NameType.VARIABLE
+    );
+
+    const w =
+      javascriptGenerator.valueToCode(
+        block,
+        "WIDTH",
+        Order.NONE
+      ) || "1";
+
     return `__turtle.width(${w});\n`;
   };
 
@@ -2899,19 +2924,45 @@ const defineJavascriptGenerators = () => {
      ========================== */
   javascriptGenerator.forBlock["turtle_color"] =
     javascriptGenerator.forBlock["turtle_pencolor"] = function (block) {
-      const t = javascriptGenerator.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
-      const c = javascriptGenerator.valueToCode(block, "COLOR", javascriptGenerator.ORDER_NONE) || '"#000000"';
+      const nameDB = javascriptGenerator.nameDB_;
+      if (!nameDB) return "";
+
+      const t = nameDB.getName(
+        block.getFieldValue("VAR"),
+        Blockly.Names.NameType.VARIABLE
+      );
+
+      const c =
+        javascriptGenerator.valueToCode(
+          block,
+          "COLOR",
+          Order.NONE
+        ) || '"#000000"';
+
       return `__turtle.pencolor(${c});\n`;
     };
 
   javascriptGenerator.forBlock["turtle_fill_color"] = function (block) {
-    const t = javascriptGenerator.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
-    const c = javascriptGenerator.valueToCode(block, "COLOR", javascriptGenerator.ORDER_NONE) || '"#000000"';
+    const nameDB = javascriptGenerator.nameDB_;
+    if (!nameDB) return "";
+
+    const t = nameDB.getName(
+      block.getFieldValue("VAR"),
+      Blockly.Names.NameType.VARIABLE
+    );
+
+    const c =
+      javascriptGenerator.valueToCode(
+        block,
+        "COLOR",
+        Order.NONE
+      ) || '"#000000"';
+
     return `__turtle.fillcolor(${c});\n`;
   };
 
   javascriptGenerator.forBlock["turtle_bgcolor"] = function (block) {
-    const c = javascriptGenerator.valueToCode(block, "COLOR", javascriptGenerator.ORDER_NONE) || '"#ffffff"';
+    const c = javascriptGenerator.valueToCode(block, "COLOR", Order.NONE) || '"#ffffff"';
     return `__turtle.bgcolor(${c});\n`;
   };
 
@@ -2936,24 +2987,51 @@ const defineJavascriptGenerators = () => {
      SPEED
      ========================== */
   javascriptGenerator.forBlock["turtle_speed"] = function (block) {
-    const t = javascriptGenerator.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
-    const s = javascriptGenerator.valueToCode(block, "SPEED", javascriptGenerator.ORDER_NONE) || "5";
+    const nameDB = javascriptGenerator.nameDB_;
+    if (!nameDB) return "";
+
+    const t = nameDB.getName(
+      block.getFieldValue("VAR"),
+      Blockly.Names.NameType.VARIABLE
+    );
+
+    const s =
+      javascriptGenerator.valueToCode(
+        block,
+        "SPEED",
+        Order.NONE
+      ) || "5";
+
     return `__turtle.speed(${s});\n`;
   };
 
   /* ==========================
      VISIBILITY
      ========================== */
+
   javascriptGenerator.forBlock["turtle_hide"] = function (block) {
-    const t = javascriptGenerator.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
+    const nameDB = javascriptGenerator.nameDB_;
+    if (!nameDB) return "";
+
+    const t = nameDB.getName(
+      block.getFieldValue("VAR"),
+      Blockly.Names.NameType.VARIABLE
+    );
+
     return `__turtle.hideturtle();\n`;
   };
 
   javascriptGenerator.forBlock["turtle_show"] = function (block) {
-    const t = javascriptGenerator.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
+    const nameDB = javascriptGenerator.nameDB_;
+    if (!nameDB) return "";
+
+    const t = nameDB.getName(
+      block.getFieldValue("VAR"),
+      Blockly.Names.NameType.VARIABLE
+    );
+
     return `__turtle.showturtle();\n`;
   };
-
 };
 
 const definePythonGenerators = () => {
@@ -3075,7 +3153,7 @@ const definePythonGenerators = () => {
   };
 
   pythonGenerator.forBlock['finger_set_delay'] = function (block, generator) {
-    const delay = generator.valueToCode(block, 'DELAY', pythonGenerator.ORDER_ATOMIC) || '0';
+    const delay = generator.valueToCode(block, 'DELAY', PythonOrder.ATOMIC) || '0';
     return `print("__FINGER_DELAY__:${delay}")\n`;
   };
 
@@ -3144,14 +3222,14 @@ const definePythonGenerators = () => {
   pythonGenerator.forBlock['cv_xy'] = function (block) {
     const x = block.getFieldValue("X");
     const y = block.getFieldValue("Y");
-    return [`(${x}, ${y})`, pythonGenerator.ORDER_ATOMIC];
+    return [`(${x}, ${y})`, Order.ATOMIC];
   };
 
   pythonGenerator.forBlock['cv_rgb'] = function (block) {
     const r = block.getFieldValue("R");
     const g = block.getFieldValue("G");
     const b = block.getFieldValue("B");
-    return [`(${r}, ${g}, ${b})`, pythonGenerator.ORDER_ATOMIC];
+    return [`(${r}, ${g}, ${b})`, Order.ATOMIC];
   };
 
   pythonGenerator.forBlock['cv_show_image'] = function (block) {
@@ -3165,17 +3243,36 @@ const definePythonGenerators = () => {
   };
 
   pythonGenerator.forBlock['turtle_left'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const angle = generator.valueToCode(block, 'ANGLE', pythonGenerator.ORDER_ATOMIC) || '0';
-    const code = `${varName}.left(${angle})\n`;
-    return code;
+    const nameDB = generator.nameDB_;
+    if (!nameDB) return "";
+
+    const varName = nameDB.getName(
+      block.getFieldValue('VAR'),
+      Blockly.Names.NameType.VARIABLE
+    );
+
+    const angle =
+      generator.valueToCode(
+        block,
+        'ANGLE',
+        PythonOrder.ATOMIC
+      ) || '0';
+
+    return `${varName}.left(${angle})\n`;
   };
 
   pythonGenerator.forBlock['turtle_pencolor'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
+    const nameDB = generator.nameDB_;
+    if (!nameDB) return "";
+
+    const varName = nameDB.getName(
+      block.getFieldValue('VAR'),
+      Blockly.Names.NameType.VARIABLE
+    );
+
     const color = block.getFieldValue('COLOR');
-    const code = `${varName}.pencolor('${color}')\n`;
-    return code;
+
+    return `${varName}.pencolor('${color}')\n`;
   };
 
   /* =========================
@@ -3205,17 +3302,22 @@ const definePythonGenerators = () => {
   };
 
   pythonGenerator.forBlock['file_open'] = function (block, generator) {
-    generator.definitions_['file_runtime'] =
-      `from io import StringIO
+    const gen = generator as any;
+
+    if (!gen.definitions_) {
+      gen.definitions_ = {};
+    }
+
+    gen.definitions_['file_runtime'] = `
+from io import StringIO
 def open_uploaded(filename, mode="r"):
-print("DEBUG FILES:", list(__uploaded_files.keys()))
+    print("DEBUG FILES:", list(__uploaded_files.keys()))
     if filename not in __uploaded_files:
         raise FileNotFoundError(filename)
     return StringIO(__uploaded_files[filename])
 
 file_handle = None
 `;
-
 
     const filename = block.getFieldValue("FILENAME");
     const mode = block.getFieldValue("MODE");
@@ -3381,25 +3483,33 @@ serial.send(${text})
     return ""; // ignored
   };
 
-  pythonGenerator.forBlock["turtle_create"] = function (block, gen) {
+  pythonGenerator.forBlock["turtle_create"] = function (block, generator) {
+    const gen = generator as any;
+
+    if (!gen.definitions_) {
+      gen.definitions_ = {};
+    }
+
     gen.definitions_["import_turtle"] = `
 import turtle
 _screen = turtle.Screen()
 `;
 
-    const t = gen.nameDB_.getName(
-      block.getFieldValue("VAR"),
-      Blockly.Names.NameType.VARIABLE
-    );
-
-    return `${t} = turtle.Turtle()\n`;
+    return "";
   };
 
+  /* =========================
+   TURTLE MOVEMENT
+========================= */
+
   pythonGenerator.forBlock['turtle_forward'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(
+    const genAny = generator as any;
+
+    const varName = genAny.nameDB_.getName(
       block.getFieldValue('VAR'),
       Blockly.Names.NameType.VARIABLE
     );
+
     const distance =
       generator.valueToCode(block, 'DISTANCE', PythonOrder.ATOMIC) || '0';
 
@@ -3407,17 +3517,31 @@ _screen = turtle.Screen()
   };
 
   pythonGenerator.forBlock['turtle_right'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const angle = generator.valueToCode(block, 'ANGLE', PythonOrder.ATOMIC) || '0';
-    const code = `${varName}.right(${angle})\n`;
-    return code;
+    const genAny = generator as any;
+
+    const varName = genAny.nameDB_.getName(
+      block.getFieldValue('VAR'),
+      Blockly.Names.NameType.VARIABLE
+    );
+
+    const angle =
+      generator.valueToCode(block, 'ANGLE', PythonOrder.ATOMIC) || '0';
+
+    return `${varName}.right(${angle})\n`;
   };
 
   pythonGenerator.forBlock['turtle_left'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const angle = generator.valueToCode(block, 'ANGLE', PythonOrder.ATOMIC) || '0';
-    const code = `${varName}.left(${angle})\n`;
-    return code;
+    const genAny = generator as any;
+
+    const varName = genAny.nameDB_.getName(
+      block.getFieldValue('VAR'),
+      Blockly.Names.NameType.VARIABLE
+    );
+
+    const angle =
+      generator.valueToCode(block, 'ANGLE', PythonOrder.ATOMIC) || '0';
+
+    return `${varName}.left(${angle})\n`;
   };
 
   /* =========================
@@ -3426,40 +3550,44 @@ _screen = turtle.Screen()
 
   pythonGenerator.forBlock['convert_to_int'] = function (block, generator) {
     const value =
-      generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_FUNCTION_CALL) || '0';
+      generator.valueToCode(block, 'VALUE', PythonOrder.FUNCTION_CALL) || '0';
 
-    const code = `int(${value})`;
-    return [code, pythonGenerator.ORDER_FUNCTION_CALL];
+    return [`int(${value})`, PythonOrder.FUNCTION_CALL];
   };
 
   pythonGenerator.forBlock['convert_to_float'] = function (block, generator) {
     const value =
-      generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_FUNCTION_CALL) || '0';
-    return [`float(${value})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      generator.valueToCode(block, 'VALUE', PythonOrder.FUNCTION_CALL) || '0';
+
+    return [`float(${value})`, PythonOrder.FUNCTION_CALL];
   };
 
   pythonGenerator.forBlock['convert_to_string'] = function (block, generator) {
     const value =
-      generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_FUNCTION_CALL) || '""';
-    return [`str(${value})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      generator.valueToCode(block, 'VALUE', PythonOrder.FUNCTION_CALL) || '""';
+
+    return [`str(${value})`, PythonOrder.FUNCTION_CALL];
   };
 
   pythonGenerator.forBlock['convert_to_bool'] = function (block, generator) {
     const value =
-      generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_FUNCTION_CALL) || 'False';
-    return [`bool(${value})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      generator.valueToCode(block, 'VALUE', PythonOrder.FUNCTION_CALL) || 'False';
+
+    return [`bool(${value})`, PythonOrder.FUNCTION_CALL];
   };
 
-  pythonGenerator.forBlock['convert_upper_case'] = function (block, gen) {
+  pythonGenerator.forBlock['convert_upper_case'] = function (block, generator) {
     const value =
-      gen.valueToCode(block, 'VALUE', gen.ORDER_MEMBER) || '""';
-    return [`${value}.upper()`, gen.ORDER_MEMBER];
+      generator.valueToCode(block, 'VALUE', PythonOrder.MEMBER) || '""';
+
+    return [`${value}.upper()`, PythonOrder.MEMBER];
   };
 
-  pythonGenerator.forBlock['convert_lower_case'] = function (block, gen) {
+  pythonGenerator.forBlock['convert_lower_case'] = function (block, generator) {
     const value =
-      gen.valueToCode(block, 'VALUE', gen.ORDER_MEMBER) || '""';
-    return [`${value}.lower()`, gen.ORDER_MEMBER];
+      generator.valueToCode(block, 'VALUE', PythonOrder.MEMBER) || '""';
+
+    return [`${value}.lower()`, PythonOrder.MEMBER];
   };
 
   pythonGenerator.forBlock["turtle_bgcolor"] = function (block, gen) {
@@ -3471,7 +3599,7 @@ _screen = turtle.Screen()
   pythonGenerator.forBlock['controls_repeat'] = function (block, generator) {
     const times = generator.valueToCode(block, 'TIMES', PythonOrder.ATOMIC) || '0';
     let branch = generator.statementToCode(block, 'DO');
-    branch = generator.addLoopTrap(branch, block.id) || generator.PASS;
+    branch = generator.addLoopTrap(branch, block) || "    pass\n";
     const code = `for __count in range(int(${times})):\n${branch}`;
     return code;
   };
@@ -3484,29 +3612,49 @@ _screen = turtle.Screen()
   };
 
   pythonGenerator.forBlock['math_arithmetic'] = function (block, generator) {
-    const operator = block.getFieldValue('OP');
-    const arg0 = generator.valueToCode(block, 'A', pythonGenerator.ORDER_ADDITIVE) || '0';
-    const arg1 = generator.valueToCode(block, 'B', pythonGenerator.ORDER_ADDITIVE) || '0';
+    const operator = block.getFieldValue('OP') as
+      | 'ADD'
+      | 'MINUS'
+      | 'MULTIPLY'
+      | 'DIVIDE'
+      | 'POWER';
 
-    const operations = {
-      'ADD': [arg0 + ' + ' + arg1, pythonGenerator.ORDER_ADDITIVE],
-      'MINUS': [arg0 + ' - ' + arg1, pythonGenerator.ORDER_ADDITIVE],
-      'MULTIPLY': [arg0 + ' * ' + arg1, pythonGenerator.ORDER_MULTIPLICATIVE],
-      'DIVIDE': [arg0 + ' / ' + arg1, pythonGenerator.ORDER_MULTIPLICATIVE],
-      'POWER': [arg0 + ' ** ' + arg1, pythonGenerator.ORDER_EXPONENTIATION]
+    const arg0 =
+      generator.valueToCode(block, 'A', PythonOrder.ADDITIVE) || '0';
+
+    const arg1 =
+      generator.valueToCode(block, 'B', PythonOrder.ADDITIVE) || '0';
+
+    const operations: Record<
+      'ADD' | 'MINUS' | 'MULTIPLY' | 'DIVIDE' | 'POWER',
+      [string, number]
+    > = {
+      ADD: [`${arg0} + ${arg1}`, PythonOrder.ADDITIVE],
+      MINUS: [`${arg0} - ${arg1}`, PythonOrder.ADDITIVE],
+      MULTIPLY: [`${arg0} * ${arg1}`, PythonOrder.MULTIPLICATIVE],
+      DIVIDE: [`${arg0} / ${arg1}`, PythonOrder.MULTIPLICATIVE],
+      POWER: [`${arg0} ** ${arg1}`, PythonOrder.EXPONENTIATION],
     };
 
-    return operations[operator] || [arg0, PythonOrder.ATOMIC];
+    return operations[operator] ?? [arg0, PythonOrder.ATOMIC];
   };
 
   // Variable blocks (these are built-in Blockly blocks)
   pythonGenerator.forBlock['variables_get'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
+    const genAny = generator as any;
+
+    const varName = genAny.nameDB_.getName(
+      block.getFieldValue('VAR'),
+      Blockly.Names.NameType.VARIABLE
+    );
+
     return [varName, PythonOrder.ATOMIC];
   };
 
   pythonGenerator.forBlock['variables_set'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(
+    const genAny = generator as any;
+
+    const varName = genAny.nameDB_.getName(
       block.getFieldValue('VAR'),
       Blockly.Names.NameType.VARIABLE
     );
@@ -3516,7 +3664,6 @@ _screen = turtle.Screen()
 
     return `${varName} = ${arg0}\n`;
   };
-
 
   // Input blocks
   pythonGenerator.forBlock['text'] = function (block, generator) {
@@ -3593,46 +3740,59 @@ _screen = turtle.Screen()
   };
 
   pythonGenerator.forBlock['logic_compare'] = function (block, generator) {
-    const operator = block.getFieldValue('OP');
-    const arg0 = generator.valueToCode(block, 'A', pythonGenerator.ORDER_RELATIONAL) || '0';
-    const arg1 = generator.valueToCode(block, 'B', pythonGenerator.ORDER_RELATIONAL) || '0';
+    const operator = block.getFieldValue('OP') as
+      | 'EQ'
+      | 'NEQ'
+      | 'LT'
+      | 'LTE'
+      | 'GT'
+      | 'GTE';
 
-    const operators = {
-      'EQ': '==',
-      'NEQ': '!=',
-      'LT': '<',
-      'LTE': '<=',
-      'GT': '>',
-      'GTE': '>='
+    const arg0 =
+      generator.valueToCode(block, 'A', PythonOrder.RELATIONAL) || '0';
+
+    const arg1 =
+      generator.valueToCode(block, 'B', PythonOrder.RELATIONAL) || '0';
+
+    const operators: Record<
+      'EQ' | 'NEQ' | 'LT' | 'LTE' | 'GT' | 'GTE',
+      string
+    > = {
+      EQ: '==',
+      NEQ: '!=',
+      LT: '<',
+      LTE: '<=',
+      GT: '>',
+      GTE: '>='
     };
 
     const op = operators[operator];
-    const code = `${arg0} ${op} ${arg1}`;
-    return [code, pythonGenerator.ORDER_RELATIONAL];
+
+    return [`${arg0} ${op} ${arg1}`, PythonOrder.RELATIONAL];
   };
 
   pythonGenerator.forBlock['logic_operation'] = function (block, generator) {
     const operator = block.getFieldValue('OP');
-    const arg0 = generator.valueToCode(block, 'A', pythonGenerator.ORDER_LOGICAL_AND) || 'True';
-    const arg1 = generator.valueToCode(block, 'B', pythonGenerator.ORDER_LOGICAL_AND) || 'True';
+    const arg0 = generator.valueToCode(block, 'A', PythonOrder.LOGICAL_AND) || 'True';
+    const arg1 = generator.valueToCode(block, 'B', PythonOrder.LOGICAL_AND) || 'True';
 
     const op = operator === 'AND' ? ' and ' : ' or ';
     const code = `${arg0}${op}${arg1}`;
-    return [code, pythonGenerator.ORDER_LOGICAL_AND];
+    return [code, PythonOrder.LOGICAL_AND];
   };
 
   pythonGenerator.forBlock['logic_not'] = function (block, generator) {
-    const arg0 = generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_LOGICAL_NOT) || 'True';
+    const arg0 = generator.valueToCode(block, 'VALUE', PythonOrder.LOGICAL_NOT) || 'True';
     const code = `not ${arg0}`;
-    return [code, pythonGenerator.ORDER_LOGICAL_NOT];
+    return [code, PythonOrder.LOGICAL_NOT];
   };
 
   pythonGenerator.forBlock['logic_ternary'] = function (block, generator) {
-    const test = generator.valueToCode(block, 'TEST', pythonGenerator.ORDER_CONDITIONAL) || 'True';
-    const ifTrue = generator.valueToCode(block, 'IF_TRUE', pythonGenerator.ORDER_CONDITIONAL) || 'None';
-    const ifFalse = generator.valueToCode(block, 'IF_FALSE', pythonGenerator.ORDER_CONDITIONAL) || 'None';
+    const test = generator.valueToCode(block, 'TEST', PythonOrder.CONDITIONAL) || 'True';
+    const ifTrue = generator.valueToCode(block, 'IF_TRUE', PythonOrder.CONDITIONAL) || 'None';
+    const ifFalse = generator.valueToCode(block, 'IF_FALSE', PythonOrder.CONDITIONAL) || 'None';
     const code = `${ifTrue} if ${test} else ${ifFalse}`;
-    return [code, pythonGenerator.ORDER_CONDITIONAL];
+    return [code, PythonOrder.CONDITIONAL];
   };
 
   // Function generators
@@ -3681,41 +3841,41 @@ _screen = turtle.Screen()
     const index = generator.valueToCode(block, 'INDEX', PythonOrder.ATOMIC) || '0';
     const tuple = generator.valueToCode(block, 'TUPLE', PythonOrder.ATOMIC) || '()';
     const code = `${tuple}[${index}]`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   pythonGenerator.forBlock['tuples_count'] = function (block, generator) {
     const element = generator.valueToCode(block, 'ELEMENT', PythonOrder.ATOMIC) || 'None';
     const tuple = generator.valueToCode(block, 'TUPLE', PythonOrder.ATOMIC) || '()';
     const code = `${tuple}.count(${element})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   pythonGenerator.forBlock['tuples_position'] = function (block, generator) {
     const element = generator.valueToCode(block, 'ELEMENT', PythonOrder.ATOMIC) || 'None';
     const tuple = generator.valueToCode(block, 'TUPLE', PythonOrder.ATOMIC) || '()';
     const code = `${tuple}.index(${element})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   pythonGenerator.forBlock['tuples_length'] = function (block, generator) {
     const tuple = generator.valueToCode(block, 'TUPLE', PythonOrder.ATOMIC) || '()';
     const code = `len(${tuple})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Conversion generators
 
   pythonGenerator.forBlock['convert_upper_case'] = function (block, generator) {
-    const value = generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_MEMBER) || '""';
+    const value = generator.valueToCode(block, 'VALUE', PythonOrder.MEMBER) || '""';
     const code = `${value}.upper()`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   pythonGenerator.forBlock['convert_lower_case'] = function (block, generator) {
-    const value = generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_MEMBER) || '""';
+    const value = generator.valueToCode(block, 'VALUE', PythonOrder.MEMBER) || '""';
     const code = `${value}.lower()`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Loops: Repeat while
@@ -3728,22 +3888,41 @@ _screen = turtle.Screen()
 
   // Loops: For (count with from/to)
   pythonGenerator.forBlock['controls_for'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const start = generator.valueToCode(block, 'FROM', PythonOrder.NONE) || '0';
-    const end = generator.valueToCode(block, 'TO', PythonOrder.NONE) || '10';
-    const by = generator.valueToCode(block, 'BY', PythonOrder.NONE) || '1';
+    const genAny = generator as any;
+
+    const varName = genAny.nameDB_.getName(
+      block.getFieldValue('VAR'),
+      Blockly.Names.NameType.VARIABLE
+    );
+
+    const start =
+      generator.valueToCode(block, 'FROM', PythonOrder.NONE) || '0';
+
+    const end =
+      generator.valueToCode(block, 'TO', PythonOrder.NONE) || '10';
+
+    const by =
+      generator.valueToCode(block, 'BY', PythonOrder.NONE) || '1';
+
     const body = generator.statementToCode(block, 'DO');
-    const code = `for ${varName} in range(${start}, ${end}, ${by}):\n${body}`;
-    return code;
+
+    return `for ${varName} in range(${start}, ${end}, ${by}):\n${body}`;
   };
 
-  // Loops: For each
   pythonGenerator.forBlock['controls_forEach'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const list = generator.valueToCode(block, 'LIST', PythonOrder.NONE) || '[]';
+    const genAny = generator as any;
+
+    const varName = genAny.nameDB_.getName(
+      block.getFieldValue('VAR'),
+      Blockly.Names.NameType.VARIABLE
+    );
+
+    const list =
+      generator.valueToCode(block, 'LIST', PythonOrder.NONE) || '[]';
+
     const body = generator.statementToCode(block, 'DO');
-    const code = `for ${varName} in ${list}:\n${body}`;
-    return code;
+
+    return `for ${varName} in ${list}:\n${body}`;
   };
 
   // Loops: Break
@@ -3766,65 +3945,79 @@ _screen = turtle.Screen()
 
   // Math: Square root
   pythonGenerator.forBlock['math_sqrt'] = function (block, generator) {
-    const value = generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_MEMBER) || '0';
+    const value = generator.valueToCode(block, 'VALUE', PythonOrder.MEMBER) || '0';
     const code = `math.sqrt(${value})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Math: Round
   pythonGenerator.forBlock['math_round'] = function (block, generator) {
-    const value = generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_MEMBER) || '0';
+    const value = generator.valueToCode(block, 'VALUE', PythonOrder.MEMBER) || '0';
     const code = `round(${value})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Math: Sin
   pythonGenerator.forBlock['math_sin'] = function (block, generator) {
-    const value = generator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_MEMBER) || '0';
+    const value = generator.valueToCode(block, 'VALUE', PythonOrder.MEMBER) || '0';
     const code = `math.sin(${value})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Math: Pi
   pythonGenerator.forBlock['math_pi'] = function (block, generator) {
-    return ['math.pi', pythonGenerator.ORDER_MEMBER];
+    return ['math.pi', PythonOrder.MEMBER];
   };
 
   // Math: Sum of list
   pythonGenerator.forBlock['math_sum'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const code = `sum(${list})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Math: Remainder (modulo)
   pythonGenerator.forBlock['math_remainder'] = function (block, generator) {
-    const dividend = generator.valueToCode(block, 'DIVIDEND', pythonGenerator.ORDER_MODULUS) || '0';
-    const divisor = generator.valueToCode(block, 'DIVISOR', pythonGenerator.ORDER_MODULUS) || '1';
-    const code = `${dividend} % ${divisor}`;
-    return [code, pythonGenerator.ORDER_MODULUS];
+    const dividend =
+      generator.valueToCode(block, 'DIVIDEND', PythonOrder.MULTIPLICATIVE) || '0';
+
+    const divisor =
+      generator.valueToCode(block, 'DIVISOR', PythonOrder.MULTIPLICATIVE) || '1';
+
+    return [`${dividend} % ${divisor}`, PythonOrder.MULTIPLICATIVE];
   };
 
   // Math: Random integer
   pythonGenerator.forBlock['math_random_int'] = function (block, generator) {
-    // Ensure import is added once at top
-    generator.definitions_['import_random'] = 'import random';
+    const genAny = generator as any;
+
+    if (!genAny.definitions_) {
+      genAny.definitions_ = {};
+    }
+
+    genAny.definitions_['import_random'] = 'import random';
 
     const from =
       generator.valueToCode(block, 'FROM', PythonOrder.NONE) || '1';
+
     const to =
       generator.valueToCode(block, 'TO', PythonOrder.NONE) || '100';
 
-    const code = `random.randint(${from}, ${to})`;
-    return [code, pythonGenerator.ORDER_FUNCTION_CALL];
+    return [`random.randint(${from}, ${to})`, PythonOrder.FUNCTION_CALL];
   };
+
 
   // Math: Random fraction
   pythonGenerator.forBlock['math_random_fraction'] = function (block, generator) {
-    // ✅ ensure import added once
-    generator.definitions_['import_random'] = 'import random';
+    const genAny = generator as any;
 
-    return ['random.random()', pythonGenerator.ORDER_FUNCTION_CALL];
+    if (!genAny.definitions_) {
+      genAny.definitions_ = {};
+    }
+
+    genAny.definitions_['import_random'] = 'import random';
+
+    return ['random.random()', PythonOrder.FUNCTION_CALL];
   };
 
   // Lists: Create list
@@ -3836,14 +4029,14 @@ _screen = turtle.Screen()
   // Lists: Get item
   pythonGenerator.forBlock['lists_getIndex'] = function (block, generator) {
     const index = generator.valueToCode(block, 'INDEX', PythonOrder.NONE) || '0';
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const code = `${list}[${index}]`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Lists: Append item
   pythonGenerator.forBlock['lists_append'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const item = generator.valueToCode(block, 'ITEM', PythonOrder.NONE) || 'None';
     const code = `${list}.append(${item})\n`;
     return code;
@@ -3851,7 +4044,7 @@ _screen = turtle.Screen()
 
   // Lists: Remove item
   pythonGenerator.forBlock['lists_remove_item'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const item = generator.valueToCode(block, 'ITEM', PythonOrder.NONE) || 'None';
     const code = `${list}.remove(${item})\n`;
     return code;
@@ -3859,7 +4052,7 @@ _screen = turtle.Screen()
 
   // Lists: Remove at position
   pythonGenerator.forBlock['lists_remove_at'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const index = generator.valueToCode(block, 'INDEX', PythonOrder.NONE) || '0';
     const code = `${list}.pop(${index})\n`;
     return code;
@@ -3867,21 +4060,21 @@ _screen = turtle.Screen()
 
   // Lists: Sort
   pythonGenerator.forBlock['lists_sort'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const code = `${list}.sort()\n`;
     return code;
   };
 
   // Lists: Reverse
   pythonGenerator.forBlock['lists_reverse'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const code = `${list}.reverse()\n`;
     return code;
   };
 
   // Lists: Insert at position
   pythonGenerator.forBlock['lists_insert_at'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const index = generator.valueToCode(block, 'INDEX', PythonOrder.NONE) || '0';
     const item = generator.valueToCode(block, 'ITEM', PythonOrder.NONE) || 'None';
     const code = `${list}.insert(${index}, ${item})\n`;
@@ -3895,7 +4088,7 @@ _screen = turtle.Screen()
 
   // Sets: Add item
   pythonGenerator.forBlock['sets_add_item'] = function (block, generator) {
-    const set = generator.valueToCode(block, 'SET', pythonGenerator.ORDER_MEMBER) || 'set()';
+    const set = generator.valueToCode(block, 'SET', PythonOrder.MEMBER) || 'set()';
     const item = generator.valueToCode(block, 'ITEM', PythonOrder.NONE) || 'None';
     const code = `${set}.add(${item})\n`;
     return code;
@@ -3903,26 +4096,26 @@ _screen = turtle.Screen()
 
   // Sets: Union
   pythonGenerator.forBlock['sets_union'] = function (block, generator) {
-    const set1 = generator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const set2 = generator.valueToCode(block, 'SET2', pythonGenerator.ORDER_MEMBER) || 'set()';
+    const set1 = generator.valueToCode(block, 'SET1', PythonOrder.MEMBER) || 'set()';
+    const set2 = generator.valueToCode(block, 'SET2', PythonOrder.MEMBER) || 'set()';
     const code = `${set1} | ${set2}`;
-    return [code, pythonGenerator.ORDER_BITWISE_OR];
+    return [code, PythonOrder.BITWISE_OR];
   };
 
   // Sets: Intersection
   pythonGenerator.forBlock['sets_intersection'] = function (block, generator) {
-    const set1 = generator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const set2 = generator.valueToCode(block, 'SET2', pythonGenerator.ORDER_MEMBER) || 'set()';
+    const set1 = generator.valueToCode(block, 'SET1', PythonOrder.MEMBER) || 'set()';
+    const set2 = generator.valueToCode(block, 'SET2', PythonOrder.MEMBER) || 'set()';
     const code = `${set1} & ${set2}`;
-    return [code, pythonGenerator.ORDER_BITWISE_AND];
+    return [code, PythonOrder.BITWISE_AND];
   };
 
   // Sets: Difference
   pythonGenerator.forBlock['sets_difference'] = function (block, generator) {
-    const set1 = generator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const set2 = generator.valueToCode(block, 'SET2', pythonGenerator.ORDER_MEMBER) || 'set()';
+    const set1 = generator.valueToCode(block, 'SET1', PythonOrder.MEMBER) || 'set()';
+    const set2 = generator.valueToCode(block, 'SET2', PythonOrder.MEMBER) || 'set()';
     const code = `${set1} - ${set2}`;
-    return [code, pythonGenerator.ORDER_ARITHMETIC];
+    return [code, PythonOrder.ADDITIVE];
   };
 
   // Dictionaries: Create dict
@@ -3935,133 +4128,130 @@ _screen = turtle.Screen()
 
   // Dictionaries: Get value by key
   pythonGenerator.forBlock['dicts_get_value'] = function (block, generator) {
-    const dict = generator.valueToCode(block, 'DICT', pythonGenerator.ORDER_MEMBER) || '{}';
+    const dict = generator.valueToCode(block, 'DICT', PythonOrder.MEMBER) || '{}';
     const key = generator.valueToCode(block, 'KEY', PythonOrder.NONE) || '"key"';
     const code = `${dict}[${key}]`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Dictionaries: Get keys
   pythonGenerator.forBlock['dicts_get_keys'] = function (block, generator) {
-    const dict = generator.valueToCode(block, 'DICT', pythonGenerator.ORDER_MEMBER) || '{}';
+    const dict = generator.valueToCode(block, 'DICT', PythonOrder.MEMBER) || '{}';
     const code = `list(${dict}.keys())`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Dictionaries: Get values
   pythonGenerator.forBlock['dicts_get_values'] = function (block, generator) {
-    const dict = generator.valueToCode(block, 'DICT', pythonGenerator.ORDER_MEMBER) || '{}';
+    const dict = generator.valueToCode(block, 'DICT', PythonOrder.MEMBER) || '{}';
     const code = `list(${dict}.values())`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Dictionaries: Clear
   pythonGenerator.forBlock['dicts_clear'] = function (block, generator) {
-    const dict = generator.valueToCode(block, 'DICT', pythonGenerator.ORDER_MEMBER) || '{}';
+    const dict = generator.valueToCode(block, 'DICT', PythonOrder.MEMBER) || '{}';
     const code = `${dict}.clear()\n`;
     return code;
   };
 
   // Motion: Backward
   pythonGenerator.forBlock['turtle_backward'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const distance = generator.valueToCode(block, 'DISTANCE', PythonOrder.NONE) || '50';
-    const code = `print(f"[DEBUG] Moving ${varName} backward by {${distance}}")\n${varName}.backward(${distance})\nprint("[DEBUG] Backward move complete")\n`;
-    return code;
+    const nameDB = generator.nameDB_;
+    const varName = nameDB
+      ? nameDB.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE)
+      : block.getFieldValue('VAR');
+
+    const distance =
+      generator.valueToCode(block, 'DISTANCE', PythonOrder.NONE) || '50';
+
+    return `${varName}.backward(${distance})\n`;
   };
 
-  // Motion: Dot
   pythonGenerator.forBlock['turtle_dot'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const size = generator.valueToCode(block, 'SIZE', PythonOrder.NONE) || '10';
-    const code = `${varName}.dot(${size})\n`;
-    return code;
+    const nameDB = generator.nameDB_;
+    const varName = nameDB
+      ? nameDB.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE)
+      : block.getFieldValue('VAR');
+
+    const size =
+      generator.valueToCode(block, 'SIZE', PythonOrder.NONE) || '10';
+
+    return `${varName}.dot(${size})\n`;
   };
 
-  // Motion: Heading
   pythonGenerator.forBlock['turtle_heading'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const angle = generator.valueToCode(block, 'ANGLE', PythonOrder.NONE) || '0';
-    const code = `${varName}.setheading(${angle})\n`;
-    return code;
+    const nameDB = generator.nameDB_;
+    const varName = nameDB
+      ? nameDB.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE)
+      : block.getFieldValue('VAR');
+
+    const angle =
+      generator.valueToCode(block, 'ANGLE', PythonOrder.NONE) || '0';
+
+    return `${varName}.setheading(${angle})\n`;
   };
 
-  // Motion: Position
   pythonGenerator.forBlock['turtle_position'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const x = generator.valueToCode(block, 'X', PythonOrder.NONE) || '0';
-    const y = generator.valueToCode(block, 'Y', PythonOrder.NONE) || '0';
-    const code = `${varName}.goto(${x}, ${y})\n`;
-    return code;
+    const nameDB = generator.nameDB_;
+    const varName = nameDB
+      ? nameDB.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE)
+      : block.getFieldValue('VAR');
+
+    const x =
+      generator.valueToCode(block, 'X', PythonOrder.NONE) || '0';
+    const y =
+      generator.valueToCode(block, 'Y', PythonOrder.NONE) || '0';
+
+    return `${varName}.goto(${x}, ${y})\n`;
   };
 
-  // Motion: Pen up
   pythonGenerator.forBlock['turtle_penup'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const code = `${varName}.penup()\n`;
-    return code;
+    const nameDB = generator.nameDB_;
+    const varName = nameDB
+      ? nameDB.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE)
+      : block.getFieldValue('VAR');
+
+    return `${varName}.penup()\n`;
   };
 
-  // Motion: Pen down
   pythonGenerator.forBlock['turtle_pendown'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const code = `${varName}.pendown()\n`;
-    return code;
+    const nameDB = generator.nameDB_;
+    const varName = nameDB
+      ? nameDB.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE)
+      : block.getFieldValue('VAR');
+
+    return `${varName}.pendown()\n`;
   };
 
-  // Motion: Begin fill
   pythonGenerator.forBlock['turtle_begin_fill'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const code = `${varName}.begin_fill()\n`;
-    return code;
+    const nameDB = generator.nameDB_;
+    const varName = nameDB
+      ? nameDB.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE)
+      : block.getFieldValue('VAR');
+
+    return `${varName}.begin_fill()\n`;
   };
 
-  // Motion: End fill
   pythonGenerator.forBlock['turtle_end_fill'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
-    const code = `${varName}.end_fill()\n`;
-    return code;
+    const nameDB = generator.nameDB_;
+    const varName = nameDB
+      ? nameDB.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE)
+      : block.getFieldValue('VAR');
+
+    return `${varName}.end_fill()\n`;
   };
 
-  // Turtle: Shape
   pythonGenerator.forBlock['turtle_shape'] = function (block, generator) {
-    const varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
+    const nameDB = generator.nameDB_;
+    const varName = nameDB
+      ? nameDB.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE)
+      : block.getFieldValue('VAR');
+
     const shape = block.getFieldValue('SHAPE');
-    const code = `${varName}.shape('${shape}')\n`;
-    return code;
+
+    return `${varName}.shape('${shape}')\n`;
   };
-
-  // Turtle: Speed
-  pythonGenerator.forBlock["turtle_speed"] = function (block, gen) {
-    const t = gen.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
-    const s = gen.valueToCode(block, "SPEED", PythonOrder.NONE) || "5";
-    return `${t}.speed(${s})\n`;
-  };
-
-
-  // Turtle: Width
-  pythonGenerator.forBlock["turtle_width"] = function (block, gen) {
-    const t = gen.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
-    const w = gen.valueToCode(block, "WIDTH", PythonOrder.NONE) || "1";
-    return `${t}.width(${w})\n`;
-  };
-
-
-  // Turtle: Fill color
-  pythonGenerator.forBlock["turtle_fill_color"] = function (block, gen) {
-    const t = gen.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
-    const c = gen.valueToCode(block, "COLOR", PythonOrder.NONE) || '"#000000"';
-    return `${t}.fillcolor(${c})\n`;
-  };
-
-  // Turtle: Color (pen color)
-  pythonGenerator.forBlock["turtle_color"] =
-    pythonGenerator.forBlock["turtle_pencolor"] = function (block, gen) {
-      const t = gen.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
-      const c = gen.valueToCode(block, "COLOR", PythonOrder.NONE) || '"#000000"';
-      return `${t}.color(${c})\n`;
-    };
-
 
   // Control: On key press
   pythonGenerator.forBlock['controls_onkey'] = function (block, generator) {
@@ -4120,102 +4310,110 @@ _screen = turtle.Screen()
 
   // Lists: First occurrence
   pythonGenerator.forBlock['lists_first_occurrence'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const item = generator.valueToCode(block, 'ITEM', PythonOrder.NONE) || 'None';
     const code = `${list}.index(${item})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Lists: Count element
   pythonGenerator.forBlock['lists_count_element'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const item = generator.valueToCode(block, 'ITEM', PythonOrder.NONE) || 'None';
     const code = `${list}.count(${item})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Lists: Extend list
   pythonGenerator.forBlock['lists_extend'] = function (block, generator) {
-    const list1 = generator.valueToCode(block, 'LIST1', pythonGenerator.ORDER_MEMBER) || '[]';
-    const list2 = generator.valueToCode(block, 'LIST2', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list1 = generator.valueToCode(block, 'LIST1', PythonOrder.MEMBER) || '[]';
+    const list2 = generator.valueToCode(block, 'LIST2', PythonOrder.MEMBER) || '[]';
     const code = `${list1}.extend(${list2})\n`;
     return code;
   };
 
   // Lists: Get sub-list
   pythonGenerator.forBlock['lists_sub_list'] = function (block, generator) {
-    const list = generator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+    const list = generator.valueToCode(block, 'LIST', PythonOrder.MEMBER) || '[]';
     const start = generator.valueToCode(block, 'START', PythonOrder.NONE) || '0';
     const end = generator.valueToCode(block, 'END', PythonOrder.NONE) || 'len(list)';
     const code = `${list}[${start}:${end}]`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Sets: Remove random element
   pythonGenerator.forBlock['sets_remove_random'] = function (block, generator) {
-    const set = generator.valueToCode(block, 'SET', pythonGenerator.ORDER_MEMBER) || 'set()';
+    const set = generator.valueToCode(block, 'SET', PythonOrder.MEMBER) || 'set()';
     const code = `${set}.pop()`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Sets: Is superset
   pythonGenerator.forBlock['sets_is_superset'] = function (block, generator) {
-    const set1 = generator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const set2 = generator.valueToCode(block, 'SET2', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const code = `${set1} >= ${set2}`;
-    return [code, pythonGenerator.ORDER_COMPARISON];
+    const set1 =
+      generator.valueToCode(block, 'SET1', PythonOrder.RELATIONAL) || 'set()';
+
+    const set2 =
+      generator.valueToCode(block, 'SET2', PythonOrder.RELATIONAL) || 'set()';
+
+    return [`${set1} >= ${set2}`, PythonOrder.RELATIONAL];
   };
 
-  // Sets: Is subset
   pythonGenerator.forBlock['sets_is_subset'] = function (block, generator) {
-    const set1 = generator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const set2 = generator.valueToCode(block, 'SET2', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const code = `${set1} <= ${set2}`;
-    return [code, pythonGenerator.ORDER_COMPARISON];
+    const set1 =
+      generator.valueToCode(block, 'SET1', PythonOrder.RELATIONAL) || 'set()';
+
+    const set2 =
+      generator.valueToCode(block, 'SET2', PythonOrder.RELATIONAL) || 'set()';
+
+    return [`${set1} <= ${set2}`, PythonOrder.RELATIONAL];
   };
 
   // Sets: Is disjoint
   pythonGenerator.forBlock['sets_is_disjoint'] = function (block, generator) {
-    const set1 = generator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const set2 = generator.valueToCode(block, 'SET2', pythonGenerator.ORDER_MEMBER) || 'set()';
+    const set1 = generator.valueToCode(block, 'SET1', PythonOrder.MEMBER) || 'set()';
+    const set2 = generator.valueToCode(block, 'SET2', PythonOrder.MEMBER) || 'set()';
     const code = `${set1}.isdisjoint(${set2})`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Sets: Update with difference
   pythonGenerator.forBlock['sets_update_difference'] = function (block, generator) {
-    const set1 = generator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const set2 = generator.valueToCode(block, 'SET2', pythonGenerator.ORDER_MEMBER) || 'set()';
+    const set1 = generator.valueToCode(block, 'SET1', PythonOrder.MEMBER) || 'set()';
+    const set2 = generator.valueToCode(block, 'SET2', PythonOrder.MEMBER) || 'set()';
     const code = `${set1}.difference_update(${set2})\n`;
     return code;
   };
 
   // Sets: Symmetric difference
   pythonGenerator.forBlock['sets_symmetric_difference'] = function (block, generator) {
-    const set1 = generator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const set2 = generator.valueToCode(block, 'SET2', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const code = `${set1} ^ ${set2}`;
-    return [code, pythonGenerator.ORDER_BITWISE_XOR];
+    const set1 =
+      generator.valueToCode(block, 'SET1', PythonOrder.BITWISE_XOR) || 'set()';
+
+    const set2 =
+      generator.valueToCode(block, 'SET2', PythonOrder.BITWISE_XOR) || 'set()';
+
+    return [`${set1} ^ ${set2}`, PythonOrder.BITWISE_XOR];
   };
 
   // Sets: Update with symmetric difference
   pythonGenerator.forBlock['sets_update_symmetric_difference'] = function (block, generator) {
-    const set1 = generator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
-    const set2 = generator.valueToCode(block, 'SET2', pythonGenerator.ORDER_MEMBER) || 'set()';
+    const set1 = generator.valueToCode(block, 'SET1', PythonOrder.MEMBER) || 'set()';
+    const set2 = generator.valueToCode(block, 'SET2', PythonOrder.MEMBER) || 'set()';
     const code = `${set1}.symmetric_difference_update(${set2})\n`;
     return code;
   };
 
   // Dictionaries: Get items
   pythonGenerator.forBlock['dicts_get_items'] = function (block, generator) {
-    const dict = generator.valueToCode(block, 'DICT', pythonGenerator.ORDER_MEMBER) || '{}';
+    const dict = generator.valueToCode(block, 'DICT', PythonOrder.MEMBER) || '{}';
     const code = `list(${dict}.items())`;
-    return [code, pythonGenerator.ORDER_MEMBER];
+    return [code, PythonOrder.MEMBER];
   };
 
   // Dictionaries: Remove key
   pythonGenerator.forBlock['dicts_remove_key'] = function (block, generator) {
-    const dict = generator.valueToCode(block, 'DICT', pythonGenerator.ORDER_MEMBER) || '{}';
+    const dict = generator.valueToCode(block, 'DICT', PythonOrder.MEMBER) || '{}';
     const key = generator.valueToCode(block, 'KEY', PythonOrder.NONE) || '"key"';
     const code = `del ${dict}[${key}]\n`;
     return code;
@@ -4223,7 +4421,7 @@ _screen = turtle.Screen()
 
   // Dictionaries: Update dictionary
   pythonGenerator.forBlock['dicts_update'] = function (block, generator) {
-    const dict = generator.valueToCode(block, 'DICT', pythonGenerator.ORDER_MEMBER) || '{}';
+    const dict = generator.valueToCode(block, 'DICT', PythonOrder.MEMBER) || '{}';
     const key = generator.valueToCode(block, 'KEY', PythonOrder.NONE) || '"key"';
     const value = generator.valueToCode(block, 'VALUE', PythonOrder.NONE) || 'None';
     const code = `${dict}[${key}] = ${value}\n`;
@@ -4232,13 +4430,26 @@ _screen = turtle.Screen()
 
   // Turtle: Hide
   pythonGenerator.forBlock["turtle_hide"] = function (block, gen) {
-    const t = gen.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
+    const nameDB = gen.nameDB_;
+    const t = nameDB
+      ? nameDB.getName(
+        block.getFieldValue("VAR"),
+        Blockly.Names.NameType.VARIABLE
+      )
+      : block.getFieldValue("VAR");
+
     return `${t}.hideturtle()\n`;
   };
 
-  // Turtle: Show
   pythonGenerator.forBlock["turtle_show"] = function (block, gen) {
-    const t = gen.nameDB_.getName(block.getFieldValue("VAR"), Blockly.Names.NameType.VARIABLE);
+    const nameDB = gen.nameDB_;
+    const t = nameDB
+      ? nameDB.getName(
+        block.getFieldValue("VAR"),
+        Blockly.Names.NameType.VARIABLE
+      )
+      : block.getFieldValue("VAR");
+
     return `${t}.showturtle()\n`;
   };
 
@@ -4316,30 +4527,31 @@ _screen = turtle.Screen()
    (must be outside the component to survive re-renders)
 ========================= */
 // Facial Features
-let facialImage = null;
-let facialDetections = [];
-let facialCountsArray = [];
+// Facial Features
+let facialImage: HTMLImageElement | null = null;
+let facialDetections: any[] = [];
+let facialCountsArray: number[] = [];
 
 // Object Detection
-let objectImage = null;
-let objectDetections = [];
-let cocoModel = null;
+let objectImage: HTMLImageElement | null = null;
+let objectDetections: any[] = [];
+let cocoModel: any = null;
 
 // Face Recognition
-let faceRecogImage = null;
-let faceRecogResult = null;
+let faceRecogImage: HTMLImageElement | null = null;
+let faceRecogResult: any = null;
 
 // Finger Detection
-let fingerHands = null;
-let fingerCamera = null;
-let fingerResults = null;
-let fingerDelay = 0;
-let fingerDetecting = false;
-let fingerAnimationId = null;
+let fingerHands: any = null;
+let fingerCamera: any = null;
+let fingerResults: any = null;
+let fingerDelay: number = 0;
+let fingerDetecting: boolean = false;
+let fingerAnimationId: number | null = null;
 
 // Computer Vision (OpenCV)
-let cvImage = null;
-let cvMat = null;
+let cvImage: HTMLImageElement | null = null;
+let cvMat: any = null;
 
 // Promise that resolves when OpenCV.js is fully initialized
 function isCvReady() {
@@ -4386,12 +4598,17 @@ const cvReady: Promise<void> = new Promise((resolve) => {
 });
 
 // Command Queue for async operations
-let commandQueue = [];
+type Command = {
+  type: string;
+  payload?: any;
+};
+
+let commandQueue: Command[] = [];
 let isProcessingQueue = false;
 
 function AICodingPage() {
   const fileInputRef = useRef(null);
-  const blocklyDiv = useRef(null);
+  const blocklyDiv = useRef<HTMLDivElement | null>(null);
   const canvasContainerRef = useRef(null);
   const [code, setCode] = useState('');
   const [view, setView] = useState('blocks');
@@ -4399,9 +4616,9 @@ function AICodingPage() {
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [showDebug, setShowDebug] = useState(true);
   const searchParams = useSearchParams()
-let cocoModel: cocoSsd.ObjectDetection | null = null;
-let objectImage: HTMLImageElement | null = null;
-let objectDetections: cocoSsd.DetectedObject[] = [];
+  let cocoModel: cocoSsd.ObjectDetection | null = null;
+  let objectImage: HTMLImageElement | null = null;
+  let objectDetections: cocoSsd.DetectedObject[] = [];
 
   const projectId = searchParams?.get("projectId")
   const activityId = searchParams?.get("activityId")
@@ -4415,13 +4632,13 @@ let objectDetections: cocoSsd.DetectedObject[] = [];
 
 
   const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null)
-const isDetectionRunningRef = useRef(false);
-const fingerIntervalRef = useRef<any>(null);
-const handsRef = useRef<any>(null);
-const cameraRef = useRef<any>(null);
-const fingerResultsRef = useRef<any>(null);
-const fingerDelayRef = useRef<number>(1);
-const cameraWrapperRef = useRef<any>(null);
+  const isDetectionRunningRef = useRef(false);
+  const fingerIntervalRef = useRef<any>(null);
+  const handsRef = useRef<any>(null);
+  const cameraRef = useRef<any>(null);
+  const fingerResultsRef = useRef<any>(null);
+  const fingerDelayRef = useRef<number>(1);
+  const cameraWrapperRef = useRef<any>(null);
   // hidden input
   function debugLog(message: string, data?: any) {
     const timestamp = new Date().toLocaleTimeString();
@@ -4435,54 +4652,58 @@ const cameraWrapperRef = useRef<any>(null);
   }
 
   useEffect(() => {
-  if (!workspaceReady) {
-    debugLog("⏳ Waiting for workspaceReady");
-    return;
-  }
-
-  const workspace = workspaceRef.current;
-  if (!workspace) {
-    debugLog("❌ workspaceReady but workspace missing");
-    return;
-  }
-
-  const loadBlocks = async () => {
-    try {
-      let data = [];
-
-      if (mode === "ACTIVITY" && activityId) {
-        debugLog(`📦 Loading blocks for activity ${activityId}`);
-        data = await window.electronAPI.getBlocksByTutorial(
-          Number(activityId)
-        );
-      }
-
-      if (mode === "PROJECT" && projectId) {
-        debugLog(`📦 Loading blocks for project ${projectId}`);
-        data = await window.electronAPI.getProjectBlocks(
-          Number(projectId)
-        );
-      }
-
-      loadBlocksIntoWorkspace(data);
-
-    } catch (error) {
-      console.error("Failed to load blocks:", error);
+    if (!workspaceReady) {
+      debugLog("⏳ Waiting for workspaceReady");
+      return;
     }
-  };
 
-  loadBlocks();
+    const workspace = workspaceRef.current;
+    if (!workspace) {
+      debugLog("❌ workspaceReady but workspace missing");
+      return;
+    }
 
-}, [workspaceReady, mode, activityId, projectId]);
+    const loadBlocks = async () => {
+      try {
+        let data = [];
+
+        if (mode === "ACTIVITY" && activityId) {
+          debugLog(`📦 Loading blocks for activity ${activityId}`);
+          data = await window.electronAPI.getBlocksByTutorial(
+            Number(activityId)
+          );
+        }
+
+        if (mode === "PROJECT" && projectId) {
+          debugLog(`📦 Loading blocks for project ${projectId}`);
+          data = await window.electronAPI.getProjectBlocks(
+            Number(projectId)
+          );
+        }
+
+        loadBlocksIntoWorkspace(data);
+
+      } catch (error) {
+        console.error("Failed to load blocks:", error);
+      }
+    };
+
+    loadBlocks();
+
+  }, [workspaceReady, mode, activityId, projectId]);
 
   // Initialize TensorFlow.js backend on component mount
   useEffect(() => {
     const initTensorFlow = async () => {
       try {
         // Expose bundled TensorFlow on window for code paths that expect window.tf.
-        if (!window.tf) {
-          window.tf = tf;
-        }
+        const loadTF = async () => {
+          const tfModule = await import('@tensorflow/tfjs');
+
+          if (!(window as any).tf) {
+            (window as any).tf = tfModule;
+          }
+        };
 
         // Wait for CDN script to load
         let attempts = 0;
@@ -4521,7 +4742,7 @@ const cameraWrapperRef = useRef<any>(null);
         testTensor.dispose();
         debugLog("✅ TensorFlow.js backend verified");
 
-      } catch (err) {
+      } catch (err: any) {
         console.error("TensorFlow.js init failed:", err);
         debugLog(`❌ TensorFlow.js init failed: ${err.message}`);
       }
@@ -4530,20 +4751,16 @@ const cameraWrapperRef = useRef<any>(null);
     initTensorFlow();
   }, []);
 
-  function getCanvasTextOutput() {
-    let pre = canvasContainerRef.current.querySelector(".canvas-text-output");
+  function getCanvasTextOutput(): HTMLPreElement | null {
+    const container = canvasContainerRef.current as HTMLDivElement | null;
+    if (!container) return null;
+
+    let pre = container.querySelector(".canvas-text-output") as HTMLPreElement | null;
 
     if (!pre) {
       pre = document.createElement("pre");
       pre.className = "canvas-text-output";
-      pre.style.fontFamily = "monospace";
-      pre.style.fontSize = "16px";
-      pre.style.color = "#000";
-      pre.style.margin = "0";
-      pre.style.padding = "10px";
-      pre.style.whiteSpace = "pre-wrap";
-      pre.style.wordWrap = "break-word";
-      canvasContainerRef.current.appendChild(pre);
+      container.appendChild(pre);
     }
 
     return pre;
@@ -4865,7 +5082,7 @@ const cameraWrapperRef = useRef<any>(null);
     return variable.getId();
   }
 
-  function createValueBlock(workspace, valueCfg) {
+  function createValueBlock(workspace: any, valueCfg: any) {
     if (!valueCfg) return null;
 
     switch (valueCfg.type) {
@@ -4920,7 +5137,7 @@ const cameraWrapperRef = useRef<any>(null);
   }
   function mapColorToBlockType(color: string) {
     switch (color?.toUpperCase()) {
-      case "RED":
+      case "RED": ;
         return "colour_red";
       case "GREEN":
         return "colour_green";
@@ -4937,7 +5154,7 @@ const cameraWrapperRef = useRef<any>(null);
     }
   }
 
-  function createBlocklyBlock(workspace, row) {
+  function createBlocklyBlock(workspace: any, row: any) {
     const cfg = typeof row.block_config === "string"
       ? JSON.parse(row.block_config)
       : row.block_config;
@@ -4950,59 +5167,59 @@ const cameraWrapperRef = useRef<any>(null);
     switch (row.block_type) {
 
       case "FINGER_START_DETECTION": {
-  const block = workspace.newBlock("finger_start_detection");
-  block.initSvg();
-  block.render();
-  return block;
-}
-case "CONTROLS_REPEAT": {
-  const block = workspace.newBlock("controls_repeat");
+        const block = workspace.newBlock("finger_start_detection");
+        block.initSvg();
+        block.render();
+        return block;
+      }
+      case "CONTROLS_REPEAT": {
+        const block = workspace.newBlock("controls_repeat");
 
-  const num = workspace.newBlock("math_number");
-  num.setFieldValue(String(cfg.times || 1), "NUM");
+        const num = workspace.newBlock("math_number");
+        num.setFieldValue(String(cfg.times || 1), "NUM");
 
-  num.initSvg();
-  num.render();
+        num.initSvg();
+        num.render();
 
-  block.getInput("TIMES")
-    ?.connection
-    ?.connect(num.outputConnection);
+        block.getInput("TIMES")
+          ?.connection
+          ?.connect(num.outputConnection);
 
-  block.initSvg();
-  block.render();
+        block.initSvg();
+        block.render();
 
-  return block;
-}
-case "FINGER_GET_COUNT": {
-  const block = workspace.newBlock("finger_get_count");
-  block.initSvg();
-  block.render();
-  return block;
-}
-case "FINGER_SET_DELAY": {
-  const block = workspace.newBlock("finger_set_delay");
+        return block;
+      }
+      case "FINGER_GET_COUNT": {
+        const block = workspace.newBlock("finger_get_count");
+        block.initSvg();
+        block.render();
+        return block;
+      }
+      case "FINGER_SET_DELAY": {
+        const block = workspace.newBlock("finger_set_delay");
 
-  const num = workspace.newBlock("math_number");
-  num.setFieldValue(String(cfg.seconds || 1), "NUM");
+        const num = workspace.newBlock("math_number");
+        num.setFieldValue(String(cfg.seconds || 1), "NUM");
 
-  num.initSvg();
-  num.render();
+        num.initSvg();
+        num.render();
 
-  block.getInput("DELAY")
-    ?.connection
-    ?.connect(num.outputConnection);
+        block.getInput("DELAY")
+          ?.connection
+          ?.connect(num.outputConnection);
 
-  block.initSvg();
-  block.render();
+        block.initSvg();
+        block.render();
 
-  return block;
-}
-case "FINGER_STOP_DETECTION": {
-  const block = workspace.newBlock("finger_stop_detection");
-  block.initSvg();
-  block.render();
-  return block;
-}
+        return block;
+      }
+      case "FINGER_STOP_DETECTION": {
+        const block = workspace.newBlock("finger_stop_detection");
+        block.initSvg();
+        block.render();
+        return block;
+      }
 
       /* =====================
          CV BLOCKS
@@ -5066,15 +5283,15 @@ case "FINGER_STOP_DETECTION": {
         return block;
       }
       case "FACIAL_GET_GENDER": {
-  const block = workspace.newBlock("facial_get_gender");
+        const block = workspace.newBlock("facial_get_gender");
 
-  block.setFieldValue(cfg.gender || "male", "GENDER");
+        block.setFieldValue(cfg.gender || "male", "GENDER");
 
-  block.initSvg();
-  block.render();
+        block.initSvg();
+        block.render();
 
-  return block;
-}
+        return block;
+      }
 
       default:
         console.warn("Unknown block_type:", row.block_type, row);
@@ -5082,125 +5299,138 @@ case "FINGER_STOP_DETECTION": {
     }
   }
 
-function loadBlocksIntoWorkspace(blocks: any[]) {
-  debugLog('Loading blocks into workspace', { count: blocks.length, blocks });
+  function loadBlocksIntoWorkspace(blocks: any[]) {
+    debugLog('Loading blocks into workspace', { count: blocks.length, blocks });
 
-  const workspace = workspaceRef.current;
-  if (!workspace) {
-    debugLog('ERROR: Workspace not available');
-    return;
-  }
-
-  workspace.clear();
-
-  /* ======================================
-     1️⃣ Create Variables First
-  ====================================== */
-  blocks.forEach((row) => {
-    const cfg = typeof row.block_config === 'string'
-      ? JSON.parse(row.block_config)
-      : row.block_config;
-
-    if (cfg?.variable) {
-      ensureVariable(workspace, cfg.variable);
+    const workspace = workspaceRef.current;
+    if (!workspace) {
+      debugLog('ERROR: Workspace not available');
+      return;
     }
-  });
 
-  /* ======================================
-     2️⃣ Create All Blocks (No Connections Yet)
-  ====================================== */
-  const blockMap: Record<number, Blockly.Block> = {};
+    workspace.clear();
 
-  blocks.forEach((row) => {
-    const block = createBlocklyBlock(workspace, row);
-    if (!block) return;
+    /* ======================================
+       1️⃣ Create Variables First
+    ====================================== */
+    blocks.forEach((row) => {
+      const cfg = typeof row.block_config === 'string'
+        ? JSON.parse(row.block_config)
+        : row.block_config;
 
-    block.initSvg();
-    block.render();
+      if (cfg?.variable) {
+        ensureVariable(workspace, cfg.variable);
+      }
+    });
 
-    blockMap[row.id] = block;
-  });
+    /* ======================================
+       2️⃣ Create All Blocks (No Connections Yet)
+    ====================================== */
+    const blockMap: Record<number, Blockly.Block> = {};
 
-  /* ======================================
-     3️⃣ Handle Parent → Children Nesting
-     (Proper stacking inside DO)
-  ====================================== */
+    blocks.forEach((row) => {
+      const block = createBlocklyBlock(workspace, row);
+      if (!block) return;
 
-  // Get unique parents
-  const parentIds = [...new Set(
-    blocks.filter(b => b.parent_id).map(b => b.parent_id)
-  )];
+      block.initSvg();
+      block.render();
 
-  parentIds.forEach((parentId) => {
-    const parentBlock = blockMap[parentId];
-    if (!parentBlock) return;
+      blockMap[row.id] = block;
+    });
 
-    const children = blocks
-      .filter(b => b.parent_id === parentId)
+    /* ======================================
+       3️⃣ Handle Parent → Children Nesting
+       (Proper stacking inside DO)
+    ====================================== */
+
+    // Get unique parents
+    const parentIds = [...new Set(
+      blocks.filter(b => b.parent_id).map(b => b.parent_id)
+    )];
+
+    parentIds.forEach((parentId) => {
+      const parentBlock = blockMap[parentId];
+      if (!parentBlock) return;
+
+      const children = blocks
+        .filter(b => b.parent_id === parentId)
+        .sort((a, b) => a.block_order - b.block_order);
+
+      if (children.length === 0) return;
+
+      let previousChild: Blockly.Block | null = null;
+
+      children.forEach((childRow, index) => {
+        const childBlock = blockMap[childRow.id];
+        if (!childBlock) return;
+
+        if (index === 0) {
+          const doInput = parentBlock.getInput("DO");
+
+          if (
+            doInput?.connection &&
+            childBlock.previousConnection
+          ) {
+            doInput.connection.connect(childBlock.previousConnection);
+          }
+        } else {
+          if (
+            previousChild?.nextConnection &&
+            childBlock.previousConnection
+          ) {
+            previousChild.nextConnection.connect(childBlock.previousConnection);
+          }
+        }
+
+        previousChild = childBlock;
+      });
+    });
+
+    /* ======================================
+       4️⃣ Connect Top-Level Blocks Sequentially
+    ====================================== */
+
+    const topLevelBlocks = blocks
+      .filter(b => !b.parent_id)
       .sort((a, b) => a.block_order - b.block_order);
 
-    if (children.length === 0) return;
+    let previousTop: Blockly.Block | null = null;
+    let y = 40;
 
-    let previousChild: Blockly.Block | null = null;
+    topLevelBlocks.forEach((row) => {
+      const block = blockMap[row.id];
+      if (!block) return;
 
-    children.forEach((childRow, index) => {
-      const childBlock = blockMap[childRow.id];
-      if (!childBlock) return;
+      if (!previousTop) {
+        block.moveBy(40, y);
 
-      if (index === 0) {
-        // First child connects to DO input
-        parentBlock
-          .getInput("DO")
-          ?.connection
-          ?.connect(childBlock.previousConnection);
+        const svgBlock = block as Blockly.BlockSvg;
+        const rect = svgBlock.getBoundingRectangle();
+        const height = rect.bottom - rect.top;
+
+        y += height + 30;
       } else {
-        // Chain next children
-        previousChild
-          ?.nextConnection
-          ?.connect(childBlock.previousConnection);
+        if (
+          previousTop?.nextConnection &&
+          block.previousConnection
+        ) {
+          previousTop.nextConnection.connect(block.previousConnection);
+        }
       }
 
-      previousChild = childBlock;
+      previousTop = block;
     });
-  });
 
-  /* ======================================
-     4️⃣ Connect Top-Level Blocks Sequentially
-  ====================================== */
+    /* ======================================
+       5️⃣ Final Render Adjustments
+    ====================================== */
 
-  const topLevelBlocks = blocks
-    .filter(b => !b.parent_id)
-    .sort((a, b) => a.block_order - b.block_order);
+    workspace.render();
+    Blockly.svgResize(workspace);
+    workspace.scrollCenter();
 
-  let previousTop: Blockly.Block | null = null;
-  let y = 40;
-
-  topLevelBlocks.forEach((row) => {
-    const block = blockMap[row.id];
-    if (!block) return;
-
-    if (!previousTop) {
-      // First root block positioning
-      block.moveBy(40, y);
-      y += block.getHeightWidth().height + 30;
-    } else {
-      previousTop.nextConnection
-        ?.connect(block.previousConnection);
-    }
-
-    previousTop = block;
-  });
-
-  /* ======================================
-     5️⃣ Final Render Adjustments
-  ====================================== */
-
-  workspace.render();
-  Blockly.svgResize(workspace);
-  workspace.scrollCenter();
-
-  debugLog('✅ Nested blocks loaded successfully');
-}
+    debugLog('✅ Nested blocks loaded successfully');
+  }
 
 
   useEffect(() => {
@@ -5208,11 +5438,13 @@ function loadBlocksIntoWorkspace(blocks: any[]) {
     definePythonGenerators();
     defineJavascriptGenerators();
 
+    if (!blocklyDiv.current) return;
+
     const workspace = Blockly.inject(blocklyDiv.current, {
       toolbox: toolboxXml,
       zoom: {
         controls: true,
-        wheel: false, // Disable mouse wheel zoom to allow page scrolling
+        wheel: false,
         startScale: 1.0,
         maxScale: 3,
         minScale: 0.3,
@@ -5220,7 +5452,6 @@ function loadBlocksIntoWorkspace(blocks: any[]) {
       },
       trashcan: true,
       renderer: 'zelos',
-      // Fixed block size configuration
       grid: {
         spacing: 20,
         length: 1,
@@ -5290,39 +5521,40 @@ function loadBlocksIntoWorkspace(blocks: any[]) {
     setWorkspaceReady(true);
 
     // Listen for zoom changes
-    workspace.addChangeListener((e: any) => {
-      // Handle zoom events
+    const ws = workspace as Blockly.WorkspaceSvg;
+
+    ws.addChangeListener((e: Blockly.Events.Abstract) => {
       if (e.type === Blockly.Events.VIEWPORT_CHANGE) {
-        // Keep layout in sync after zoom/pan updates
         updateFlyoutScrollbars();
       }
 
       if (e.type === Blockly.Events.TOOLBOX_ITEM_SELECT) {
         requestAnimationFrame(() => {
-          // 1. Normal resize
-          Blockly.svgResize(workspace);
+          const wsSvg = ws as Blockly.WorkspaceSvg;
 
-          // 2. Force clear cached content metrics
-          (workspace as any).cachedContentBounds_ = null;
+          Blockly.svgResize(wsSvg);
 
-          // 3. Recompute content
-          workspace.resizeContents();
+          (wsSvg as any).cachedContentBounds_ = null;
 
-          // 4. Hard reset scrollbars
-          if (workspace.scrollbar) {
-            workspace.scrollbar.resize();
-            workspace.scrollbar.setVisible(false);
-            workspace.scrollbar.setVisible(true);
+          (wsSvg as any).resizeContents?.();
+
+          const scrollbar = (wsSvg as any).scrollbar;
+          if (scrollbar) {
+            scrollbar.resize();
+            scrollbar.setVisible(false);
+            scrollbar.setVisible(true);
           }
 
-          // 5. Clean up flyout scrollbars properly
-          const flyout = blocklyDiv.current?.querySelector('.blocklyFlyout');
-          const scrollbars = blocklyDiv.current?.querySelectorAll('.blocklyFlyoutScrollbar');
+          const flyout = blocklyDiv.current
+            ?.querySelector<HTMLElement>('.blocklyFlyout');
+
+          const scrollbars = blocklyDiv.current
+            ?.querySelectorAll<HTMLElement>('.blocklyFlyoutScrollbar');
 
           scrollbars?.forEach((scrollbar) => {
             const el = scrollbar as HTMLElement;
+
             if (!flyout || flyout.classList.contains('blocklyHidden')) {
-              // Hide scrollbar when flyout is closed
               el.style.display = 'none';
               el.style.visibility = 'hidden';
             } else {
@@ -5331,24 +5563,24 @@ function loadBlocksIntoWorkspace(blocks: any[]) {
             }
           });
 
-          // 6. Snap back to origin
-          workspace.scroll(0, 0);
+          (wsSvg as any).scroll?.(0, 0);
         });
       }
     });
 
     const updateFlyoutScrollbars = () => {
-      const scrollbars = blocklyDiv.current?.querySelectorAll('.blocklyFlyoutScrollbar');
+      const scrollbars = blocklyDiv.current
+        ?.querySelectorAll<HTMLElement>('.blocklyFlyoutScrollbar');
 
-      scrollbars?.forEach((scrollbar) => {
-        const el = scrollbar as HTMLElement;
-        const flyout = scrollbar.previousElementSibling as HTMLElement | null;
+      scrollbars?.forEach((el) => {
+        const flyout = el.previousElementSibling as HTMLElement | null;
 
-        // Hide scrollbar if flyout is hidden, doesn't exist, or has no content
-        if (!flyout ||
+        if (
+          !flyout ||
           flyout.classList.contains('blocklyHidden') ||
           flyout.style.display === 'none' ||
-          !flyout.querySelector('.blocklyBlockCanvas')) {
+          !flyout.querySelector('.blocklyBlockCanvas')
+        ) {
           el.style.display = 'none';
           el.style.visibility = 'hidden';
           el.style.opacity = '0';
@@ -5365,11 +5597,9 @@ function loadBlocksIntoWorkspace(blocks: any[]) {
 
     const attachFlyoutObserver = () => {
       const flyout = blocklyDiv.current?.querySelector('.blocklyFlyout');
-      if (!flyout) return;
+      if (!flyout || typeof MutationObserver === 'undefined') return;
 
-      if (flyoutObserver) {
-        flyoutObserver.disconnect();
-      }
+      flyoutObserver?.disconnect();
 
       flyoutObserver = new MutationObserver(() => {
         updateFlyoutScrollbars();
@@ -5384,14 +5614,17 @@ function loadBlocksIntoWorkspace(blocks: any[]) {
     };
 
     const preventToolboxScroll = () => {
-      const toolboxDiv = blocklyDiv.current?.querySelector('.blocklyToolboxDiv') as HTMLElement;
+      const toolboxDiv = blocklyDiv.current
+        ?.querySelector<HTMLElement>('.blocklyToolboxDiv');
 
-      // Only prevent scroll on the toolbox menu itself
-      // Let the flyout scroll naturally with the page
       if (toolboxDiv) {
-        toolboxDiv.addEventListener('wheel', (e) => {
-          e.stopPropagation();
-        }, { passive: false });
+        toolboxDiv.addEventListener(
+          'wheel',
+          (e: WheelEvent) => {
+            e.stopPropagation();
+          },
+          { passive: false }
+        );
       }
     };
 
@@ -5439,12 +5672,16 @@ function loadBlocksIntoWorkspace(blocks: any[]) {
         setTimeout(updateFlyoutScrollbars, 0);
       }
 
-      if (event.type === Blockly.Events.UI && event.element === "click") {
-        const block = workspace.getBlockById(event.blockId);
-        if (block && block.type === "file_upload") {
-          fileInputRef.current?.click();
-        }
-      }
+      if (
+  event.type === Blockly.Events.UI &&
+  event instanceof Blockly.Events.Ui &&
+  event.element === "click"
+) {
+  const block = workspace.getBlockById(event.blockId ?? "");
+  if (block && block.type === "file_upload") {
+    fileInputRef.current?.click();
+  }
+}
     });
 
     return () => {
@@ -6454,120 +6691,120 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
   ========================= */
 
   async function loadObjectImage(containerRef, outputCallback) {
-  return new Promise((resolve) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
+    return new Promise((resolve) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
 
-    input.onchange = async (e: any) => {
-      const file = e.target.files?.[0];
-      if (!file) {
-        resolve(null);
-        return;
-      }
+      input.onchange = async (e: any) => {
+        const file = e.target.files?.[0];
+        if (!file) {
+          resolve(null);
+          return;
+        }
 
-      const reader = new FileReader();
+        const reader = new FileReader();
 
-      reader.onload = async (event: any) => {
-        const img = new Image();
+        reader.onload = async (event: any) => {
+          const img = new Image();
 
-        img.onload = async () => {
-          objectImage = img;
-          containerRef.current.innerHTML = "";
-          outputCallback("✅ Image loaded!");
+          img.onload = async () => {
+            objectImage = img;
+            containerRef.current.innerHTML = "";
+            outputCallback("✅ Image loaded!");
 
-          try {
-            outputCallback("🔄 Initializing TensorFlow...");
+            try {
+              outputCallback("🔄 Initializing TensorFlow...");
 
-            // Force backend (IMPORTANT for Next.js)
-            await tf.setBackend("webgl");
-            await tf.ready();
+              // Force backend (IMPORTANT for Next.js)
+              await tf.setBackend("webgl");
+              await tf.ready();
 
-            outputCallback(`🔄 Backend ready: ${tf.getBackend()}`);
+              outputCallback(`🔄 Backend ready: ${tf.getBackend()}`);
 
-            // Load model once
-            if (!cocoModel) {
-              outputCallback("🔄 Loading COCO-SSD model...");
-              cocoModel = await cocoSsd.load({
-                base: "lite_mobilenet_v2",
-              });
-              outputCallback("✅ Model loaded!");
+              // Load model once
+              if (!cocoModel) {
+                outputCallback("🔄 Loading COCO-SSD model...");
+                cocoModel = await cocoSsd.load({
+                  base: "lite_mobilenet_v2",
+                });
+                outputCallback("✅ Model loaded!");
+              }
+
+              // Run detection
+              outputCallback("🔄 Detecting objects...");
+              const predictions = await cocoModel.detect(img);
+
+              objectDetections = predictions;
+
+              outputCallback(
+                `✅ Detection completed! Found ${predictions.length} objects.`
+              );
+            } catch (err: any) {
+              console.error("Detection error:", err);
+              outputCallback(`❌ Detection failed: ${err.message}`);
             }
 
-            // Run detection
-            outputCallback("🔄 Detecting objects...");
-            const predictions = await cocoModel.detect(img);
+            resolve(null);
+          };
 
-            objectDetections = predictions;
+          img.onerror = () => {
+            outputCallback("❌ Failed to load image.");
+            resolve(null);
+          };
 
-            outputCallback(
-              `✅ Detection completed! Found ${predictions.length} objects.`
-            );
-          } catch (err: any) {
-            console.error("Detection error:", err);
-            outputCallback(`❌ Detection failed: ${err.message}`);
-          }
-
-          resolve(null);
+          img.src = event.target.result;
         };
 
-        img.onerror = () => {
-          outputCallback("❌ Failed to load image.");
-          resolve(null);
-        };
-
-        img.src = event.target.result;
+        reader.readAsDataURL(file);
       };
 
-      reader.readAsDataURL(file);
-    };
-
-    input.click();
-  });
-}
-
-  function showObjectImage(containerRef, withBorder, outputCallback) {
-  if (!objectImage) {
-    outputCallback("❌ No image loaded.");
-    return;
-  }
-
-  containerRef.current.innerHTML = "";
-
-  const canvas = document.createElement("canvas");
-  canvas.width = objectImage.width;
-  canvas.height = objectImage.height;
-
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(objectImage, 0, 0);
-
-  if (withBorder && objectDetections.length > 0) {
-    objectDetections.forEach((detection) => {
-      const [x, y, width, height] = detection.bbox;
-
-      ctx.strokeStyle = "#FF0000";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x, y, width, height);
-
-      ctx.fillStyle = "#FF0000";
-      ctx.font = "16px Arial";
-      ctx.fillText(
-        `${detection.class} (${Math.round(detection.score * 100)}%)`,
-        x,
-        y > 10 ? y - 5 : 10
-      );
+      input.click();
     });
   }
 
-  canvas.style.maxWidth = "100%";
-  canvas.style.borderRadius = "12px";
-  canvas.style.display = "block";
-  canvas.style.margin = "auto";
+  function showObjectImage(containerRef, withBorder, outputCallback) {
+    if (!objectImage) {
+      outputCallback("❌ No image loaded.");
+      return;
+    }
 
-  containerRef.current.appendChild(canvas);
+    containerRef.current.innerHTML = "";
 
-  outputCallback("✅ Image displayed.");
-}
+    const canvas = document.createElement("canvas");
+    canvas.width = objectImage.width;
+    canvas.height = objectImage.height;
+
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(objectImage, 0, 0);
+
+    if (withBorder && objectDetections.length > 0) {
+      objectDetections.forEach((detection) => {
+        const [x, y, width, height] = detection.bbox;
+
+        ctx.strokeStyle = "#FF0000";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, width, height);
+
+        ctx.fillStyle = "#FF0000";
+        ctx.font = "16px Arial";
+        ctx.fillText(
+          `${detection.class} (${Math.round(detection.score * 100)}%)`,
+          x,
+          y > 10 ? y - 5 : 10
+        );
+      });
+    }
+
+    canvas.style.maxWidth = "100%";
+    canvas.style.borderRadius = "12px";
+    canvas.style.display = "block";
+    canvas.style.margin = "auto";
+
+    containerRef.current.appendChild(canvas);
+
+    outputCallback("✅ Image displayed.");
+  }
 
   /* =========================
      FACE RECOGNITION FUNCTIONS
@@ -6693,153 +6930,153 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
   ========================= */
 
   async function startFingerDetection(
-  blocklyDivRef,
-  canvasContainerRef,
-  outputCallback
-) {
-  if (isDetectionRunningRef.current) return;
+    blocklyDivRef,
+    canvasContainerRef,
+    outputCallback
+  ) {
+    if (isDetectionRunningRef.current) return;
 
-  if (!window.Hands || !window.Camera) {
-    outputCallback("⏳ MediaPipe loading...");
-    return;
-  }
-
-  try {
-    outputCallback("📹 Opening camera...");
-    isDetectionRunningRef.current = true;
-
-    // Ensure Blockly container allows overlay
-    blocklyDivRef.current.style.position = "relative";
-
-    // Create popup wrapper
-    const wrapper = document.createElement("div");
-    wrapper.style.position = "absolute";
-    wrapper.style.top = "20px";
-    wrapper.style.right = "20px";
-    wrapper.style.width = "300px";
-    wrapper.style.zIndex = "9999";
-    wrapper.style.borderRadius = "12px";
-    wrapper.style.overflow = "hidden";
-    wrapper.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
-    wrapper.style.background = "#000";
-
-    cameraWrapperRef.current = wrapper;
-
-    // Video
-    const video = document.createElement("video");
-    video.autoplay = true;
-    video.playsInline = true;
-    video.style.width = "100%";
-
-    // Canvas overlay
-    const canvas = document.createElement("canvas");
-    canvas.width = 640;
-    canvas.height = 480;
-    canvas.style.position = "absolute";
-    canvas.style.top = "0";
-    canvas.style.left = "0";
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-
-    wrapper.appendChild(video);
-    wrapper.appendChild(canvas);
-    blocklyDivRef.current.appendChild(wrapper);
-
-    const ctx = canvas.getContext("2d");
-
-    // Get camera stream
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
-
-    // Create Hands instance once
-    if (!handsRef.current) {
-      handsRef.current = new window.Hands({
-        locateFile: (file) =>
-          `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-      });
-
-      handsRef.current.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.6
-      });
+    if (!window.Hands || !window.Camera) {
+      outputCallback("⏳ MediaPipe loading...");
+      return;
     }
 
-    handsRef.current.onResults((results) => {
-      fingerResultsRef.current = results;
+    try {
+      outputCallback("📹 Opening camera...");
+      isDetectionRunningRef.current = true;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Ensure Blockly container allows overlay
+      blocklyDivRef.current.style.position = "relative";
 
-      if (results.multiHandLandmarks) {
-        for (const landmarks of results.multiHandLandmarks) {
-          window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS);
-          window.drawLandmarks(ctx, landmarks);
-        }
+      // Create popup wrapper
+      const wrapper = document.createElement("div");
+      wrapper.style.position = "absolute";
+      wrapper.style.top = "20px";
+      wrapper.style.right = "20px";
+      wrapper.style.width = "300px";
+      wrapper.style.zIndex = "9999";
+      wrapper.style.borderRadius = "12px";
+      wrapper.style.overflow = "hidden";
+      wrapper.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+      wrapper.style.background = "#000";
+
+      cameraWrapperRef.current = wrapper;
+
+      // Video
+      const video = document.createElement("video");
+      video.autoplay = true;
+      video.playsInline = true;
+      video.style.width = "100%";
+
+      // Canvas overlay
+      const canvas = document.createElement("canvas");
+      canvas.width = 640;
+      canvas.height = 480;
+      canvas.style.position = "absolute";
+      canvas.style.top = "0";
+      canvas.style.left = "0";
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+
+      wrapper.appendChild(video);
+      wrapper.appendChild(canvas);
+      blocklyDivRef.current.appendChild(wrapper);
+
+      const ctx = canvas.getContext("2d");
+
+      // Get camera stream
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+
+      // Create Hands instance once
+      if (!handsRef.current) {
+        handsRef.current = new window.Hands({
+          locateFile: (file) =>
+            `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        handsRef.current.setOptions({
+          maxNumHands: 1,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.7,
+          minTrackingConfidence: 0.6
+        });
       }
-    });
 
-    // Start Camera
-    cameraRef.current = new window.Camera(video, {
-      onFrame: async () => {
-        if (handsRef.current) {
-          await handsRef.current.send({ image: video });
+      handsRef.current.onResults((results) => {
+        fingerResultsRef.current = results;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (results.multiHandLandmarks) {
+          for (const landmarks of results.multiHandLandmarks) {
+            window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS);
+            window.drawLandmarks(ctx, landmarks);
+          }
         }
-      },
-      width: 640,
-      height: 480
-    });
+      });
 
-    cameraRef.current.start();
+      // Start Camera
+      cameraRef.current = new window.Camera(video, {
+        onFrame: async () => {
+          if (handsRef.current) {
+            await handsRef.current.send({ image: video });
+          }
+        },
+        width: 640,
+        height: 480
+      });
 
-    outputCallback("✅ Camera started & hand detection running!");
-  } catch (err) {
-    outputCallback("❌ Camera error: " + err.message);
-  }
-}
+      cameraRef.current.start();
 
-function stopFingerDetection(canvasContainerRef, outputCallback) {
-  if (!isDetectionRunningRef.current) return;
-
-  // Stop interval
-  if (fingerIntervalRef.current) {
-    clearInterval(fingerIntervalRef.current);
-    fingerIntervalRef.current = null;
-  }
-
-  // Stop camera
-  if (cameraRef.current) {
-    cameraRef.current.stop();
-    cameraRef.current = null;
+      outputCallback("✅ Camera started & hand detection running!");
+    } catch (err) {
+      outputCallback("❌ Camera error: " + err.message);
+    }
   }
 
-  // Close hands
-  if (handsRef.current) {
-    handsRef.current.close?.();
-    handsRef.current = null;
+  function stopFingerDetection(canvasContainerRef, outputCallback) {
+    if (!isDetectionRunningRef.current) return;
+
+    // Stop interval
+    if (fingerIntervalRef.current) {
+      clearInterval(fingerIntervalRef.current);
+      fingerIntervalRef.current = null;
+    }
+
+    // Stop camera
+    if (cameraRef.current) {
+      cameraRef.current.stop();
+      cameraRef.current = null;
+    }
+
+    // Close hands
+    if (handsRef.current) {
+      handsRef.current.close?.();
+      handsRef.current = null;
+    }
+
+    // Stop video tracks
+    const video = document.querySelector("video");
+    if (video && video.srcObject) {
+      video.srcObject.getTracks().forEach(track => track.stop());
+    }
+
+    // Remove popup
+    if (cameraWrapperRef.current) {
+      cameraWrapperRef.current.remove();
+      cameraWrapperRef.current = null;
+    }
+
+    // Clear output container
+    if (canvasContainerRef?.current) {
+      canvasContainerRef.current.innerHTML = "";
+    }
+
+    isDetectionRunningRef.current = false;
+
+    outputCallback("🛑 Hand detection stopped");
   }
-
-  // Stop video tracks
-  const video = document.querySelector("video");
-  if (video && video.srcObject) {
-    video.srcObject.getTracks().forEach(track => track.stop());
-  }
-
-  // Remove popup
-  if (cameraWrapperRef.current) {
-    cameraWrapperRef.current.remove();
-    cameraWrapperRef.current = null;
-  }
-
-  // Clear output container
-  if (canvasContainerRef?.current) {
-    canvasContainerRef.current.innerHTML = "";
-  }
-
-  isDetectionRunningRef.current = false;
-
-  outputCallback("🛑 Hand detection stopped");
-}
 
   /* =========================
      COMPUTER VISION (OPENCV) FUNCTIONS
@@ -7579,7 +7816,7 @@ file_handle = None
           if (d.gender && d.gender === gender) count++;
         });
         setOutput(prev => prev + `\n${gender} count: ${count}`);
-         canvasContainerRef.current.innerHTML = `<div>${gender} count: ${count}</div>`;
+        canvasContainerRef.current.innerHTML = `<div>${gender} count: ${count}</div>`;
         return;
       }
       if (cleanText.startsWith("__FACIAL_GET_EXPRESSION__:")) {
@@ -7593,7 +7830,7 @@ file_handle = None
           if (d.expressions && d.expressions[expression] > 0.5) count++;
         });
         setOutput(prev => prev + `\n${expression} count: ${count}`);
-         canvasContainerRef.current.innerHTML = `<div>${expression} count: ${count}</div>`;
+        canvasContainerRef.current.innerHTML = `<div>${expression} count: ${count}</div>`;
         return;
       }
       if (cleanText === "__FACIAL_GET_AGE_LIST__") {
@@ -7603,7 +7840,7 @@ file_handle = None
         }
         const ages = facialDetections.map(d => Math.round(d.age || 0));
         setOutput(prev => prev + `\nAge list: [${ages.join(", ")}]`);
-         canvasContainerRef.current.innerHTML = `<div>Age list: [${ages.join(", ")}]</div>`;
+        canvasContainerRef.current.innerHTML = `<div>Age list: [${ages.join(", ")}]</div>`;
         return;
       }
       if (cleanText.startsWith("__FACIAL_SHOW__:")) {
@@ -7715,7 +7952,7 @@ file_handle = None
       }
       // Finger Detection
       if (cleanText === "__FINGER_START__") {
-        startFingerDetection(blocklyDiv,containerRef, (msg) =>
+        startFingerDetection(blocklyDiv, containerRef, (msg) =>
           setOutput(prev => prev + "\n" + msg)
         );
         return;
@@ -7728,33 +7965,33 @@ file_handle = None
       }
       if (cleanText.startsWith("__FINGER_DELAY__:")) {
         fingerDelayRef.current =
-  parseFloat(cleanText.split(":")[1]) || 1;
+          parseFloat(cleanText.split(":")[1]) || 1;
         return;
       }
-     if (cleanText === "__FINGER_GET_COUNT__") {
+      if (cleanText === "__FINGER_GET_COUNT__") {
 
-  if (fingerIntervalRef.current) {
-    clearInterval(fingerIntervalRef.current);
-  }
+        if (fingerIntervalRef.current) {
+          clearInterval(fingerIntervalRef.current);
+        }
 
-  fingerIntervalRef.current = setInterval(() => {
+        fingerIntervalRef.current = setInterval(() => {
 
-    const results = fingerResultsRef.current;
-    if (!results || !results.multiHandLandmarks) return;
+          const results = fingerResultsRef.current;
+          if (!results || !results.multiHandLandmarks) return;
 
-    const landmarks = results.multiHandLandmarks[0];
-    let count = 0;
+          const landmarks = results.multiHandLandmarks[0];
+          let count = 0;
 
-    if (landmarks[4].x < landmarks[3].x) count++;
-    if (landmarks[8].y < landmarks[6].y) count++;
-    if (landmarks[12].y < landmarks[10].y) count++;
-    if (landmarks[16].y < landmarks[14].y) count++;
-    if (landmarks[20].y < landmarks[18].y) count++;
+          if (landmarks[4].x < landmarks[3].x) count++;
+          if (landmarks[8].y < landmarks[6].y) count++;
+          if (landmarks[12].y < landmarks[10].y) count++;
+          if (landmarks[16].y < landmarks[14].y) count++;
+          if (landmarks[20].y < landmarks[18].y) count++;
 
-    setOutput(prev => prev + `\nFinger count: ${count}`);
+          setOutput(prev => prev + `\nFinger count: ${count}`);
 
-    if (canvasContainerRef?.current) {
-      canvasContainerRef.current.innerHTML = `
+          if (canvasContainerRef?.current) {
+            canvasContainerRef.current.innerHTML = `
         <div style="
           font-size:28px;
           font-weight:bold;
@@ -7764,12 +8001,12 @@ file_handle = None
           ✋ Finger Count: ${count}
         </div>
       `;
-    }
+          }
 
-  }, fingerDelayRef.current * 1000);
+        }, fingerDelayRef.current * 1000);
 
-  return;
-}
+        return;
+      }
 
       if (cleanText.startsWith("__CV_DRAW_RECT__:")) {
         if (!cvMat || !window.cv) {
@@ -8637,35 +8874,35 @@ plt = _FakePlt()
   return (
     <>
 
-<Script
-  src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"
-  strategy="beforeInteractive"
-/>
+      <Script
+        src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"
+        strategy="beforeInteractive"
+      />
 
-<Script
-  src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
-  strategy="afterInteractive"
-/>
+      <Script
+        src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
+        strategy="afterInteractive"
+      />
 
-<Script
-  src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
-  strategy="afterInteractive"
-/>
+      <Script
+        src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        strategy="afterInteractive"
+      />
 
-<Script
-  src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@latest"
-  strategy="beforeInteractive"
-/>
+      <Script
+        src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@latest"
+        strategy="beforeInteractive"
+      />
 
-<Script
-  src="https://docs.opencv.org/4.x/opencv.js"
-  strategy="afterInteractive"
-/>
+      <Script
+        src="https://docs.opencv.org/4.x/opencv.js"
+        strategy="afterInteractive"
+      />
 
-<Script
-  src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
-  strategy="beforeInteractive"
-/>
+      <Script
+        src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
+        strategy="beforeInteractive"
+      />
 
       <input
         ref={fileInputRef}
@@ -8694,115 +8931,6 @@ plt = _FakePlt()
           runCode();
         }}
       />
-
-      {/* Debug Panel */}
-      {/* {showDebug && (
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          right: '10px',
-          width: '400px',
-          maxHeight: '80vh',
-          background: '#1e1e1e',
-          border: '2px solid #4CAF50',
-          borderRadius: '8px',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-        }}>
-          <div style={{
-            padding: '10px',
-            background: '#4CAF50',
-            color: 'white',
-            fontWeight: 'bold',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderRadius: '6px 6px 0 0'
-          }}>
-            <span>🔍 Debug Console</span>
-            <div>
-              <button
-                onClick={() => setDebugLogs([])}
-                style={{
-                  background: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '4px 8px',
-                  cursor: 'pointer',
-                  marginRight: '8px',
-                  fontSize: '12px'
-                }}
-              >
-                Clear
-              </button>
-              <button
-                onClick={() => setShowDebug(false)}
-                style={{
-                  background: '#ff4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '4px 8px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <div style={{
-            padding: '10px',
-            overflowY: 'auto',
-            flex: 1,
-            fontFamily: 'monospace',
-            fontSize: '12px',
-            color: '#00ff00',
-            background: '#1e1e1e'
-          }}>
-            {debugLogs.length === 0 ? (
-              <div style={{ color: '#888' }}>No logs yet...</div>
-            ) : (
-              debugLogs.map((log, i) => (
-                <div key={i} style={{
-                  marginBottom: '4px',
-                  borderBottom: '1px solid #333',
-                  paddingBottom: '4px',
-                  wordWrap: 'break-word'
-                }}>
-                  {log}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )} */}
-
-      {/* Toggle Debug Button (when hidden) */}
-      {/* {!showDebug && (
-        <button
-          onClick={() => setShowDebug(true)}
-          style={{
-            position: 'fixed',
-            top: '10px',
-            right: '10px',
-            zIndex: 9999,
-            background: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            width: '50px',
-            height: '50px',
-            fontSize: '20px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-          }}
-        >
-          🔍
-        </button>
-      )} */}
 
       <input
         type="file"

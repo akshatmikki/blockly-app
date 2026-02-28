@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { LogOut, ChevronDown, ChevronUp, Upload, X, CheckCircle2, Eye, EyeOff, UserPen, Lock, UserX } from "lucide-react";
+import { LogOut, ChevronDown, ChevronUp, Upload, X, CheckCircle2, Eye, EyeOff, UserPen, Lock, UserX,Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import * as XLSX from "xlsx";

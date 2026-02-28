@@ -24,18 +24,12 @@ function createWindow() {
   const isDev = !app.isPackaged;
 
   if (isDev) {
-    // Development mode (when running npm run dev)
     mainWindow.loadURL("http://localhost:3000");
   } else {
-    // Production mode (fully offline)
     mainWindow.loadFile(
-      path.join(__dirname, "../out/index.html")
+      path.join(__dirname, "out", "index.html")
     );
   }
-
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
 }
 // ----------------------------
 // APP READY
