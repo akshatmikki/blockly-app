@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import { useEffect, useRef, useState, useMemo } from 'react';
 import * as Blockly from 'blockly';

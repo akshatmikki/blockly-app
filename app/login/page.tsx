@@ -135,33 +135,7 @@ const handleLogin = async (e: React.FormEvent) => {
   </a>
 </p> */}
           {/* Divider */}
-          <div className="flex items-center gap-4 py-4">
-            <div className="flex-1 h-px bg-gray-300" />
-            <span className="text-sm text-gray-500">or</span>
-            <div className="flex-1 h-px bg-gray-300" />
-          </div>
-<Button
-  type="button"
-  onClick={() => router.push("/admin_login")}
-  className="w-full h-12 flex items-center justify-center gap-2 cursor-pointer bg-purple-600 hover:bg-purple-700"
->
-  Admin Login
-</Button>
-          {/* Google Login */}
-          <Button
-            type="button"
-            onClick={handleGoogleLogin}
-            variant="outline"
-            className="w-full h-12 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Image
-              src="https://www.google.com/favicon.ico"
-              alt="Google"
-              width={18}
-              height={18}
-            />
-            Continue with Google
-          </Button>
+         
         </form>
       </div>
     </div>

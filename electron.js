@@ -1,16 +1,125 @@
 const { app, BrowserWindow, ipcMain } = require("electron")
 const path = require("path")
+const fs = require("fs")
+const http = require("http")
 const Database = require("better-sqlite3")
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 
 let mainWindow
 let db
+let staticServer
+let packagedAppUrl = null
+
+function resolveOutDir() {
+  const candidates = [
+    path.join(app.getAppPath(), "out"),
+    path.join(process.resourcesPath, "out"),
+    path.join(process.resourcesPath, "app.asar", "out"),
+    path.join(__dirname, "out"),
+  ]
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  return candidates[0]
+}
+
+function getContentType(filePath) {
+  const ext = path.extname(filePath).toLowerCase()
+  switch (ext) {
+    case ".html":
+      return "text/html; charset=utf-8"
+    case ".js":
+      return "application/javascript; charset=utf-8"
+    case ".css":
+      return "text/css; charset=utf-8"
+    case ".json":
+      return "application/json; charset=utf-8"
+    case ".svg":
+      return "image/svg+xml"
+    case ".png":
+      return "image/png"
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg"
+    case ".gif":
+      return "image/gif"
+    case ".ico":
+      return "image/x-icon"
+    case ".webp":
+      return "image/webp"
+    case ".map":
+      return "application/json; charset=utf-8"
+    default:
+      return "application/octet-stream"
+  }
+}
+
+function resolveExportedFile(outDir, requestPath) {
+  const decoded = decodeURIComponent((requestPath || "/").split("?")[0])
+  const normalized = decoded === "/" ? "index" : decoded.replace(/^\/+|\/+$/g, "")
+  const candidates = [
+    path.join(outDir, normalized),
+    path.join(outDir, `${normalized}.html`),
+    path.join(outDir, normalized, "index.html"),
+  ]
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      return candidate
+    }
+  }
+
+  // If the request looks like a concrete asset/file, don't fall back to HTML.
+  if (path.extname(decoded)) {
+    return null
+  }
+
+  const notFound = path.join(outDir, "404.html")
+  if (fs.existsSync(notFound)) return notFound
+
+  return path.join(outDir, "index.html")
+}
+
+function startStaticServer(outDir) {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer((req, res) => {
+      try {
+        const filePath = resolveExportedFile(outDir, req.url || "/")
+        if (!filePath) {
+          res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" })
+          res.end("Not Found")
+          return
+        }
+        const data = fs.readFileSync(filePath)
+        res.writeHead(200, { "Content-Type": getContentType(filePath) })
+        res.end(data)
+      } catch (error) {
+        res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" })
+        res.end(`Failed to serve static file: ${error.message}`)
+      }
+    })
+
+    server.once("error", reject)
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address()
+      if (!address || typeof address === "string") {
+        reject(new Error("Could not determine static server port"))
+        return
+      }
+      resolve({ server, url: `http://127.0.0.1:${address.port}` })
+    })
+  })
+}
 
 // ----------------------------
 // CREATE WINDOW
 // ----------------------------
-function createWindow() {
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -24,17 +133,45 @@ function createWindow() {
   const isDev = !app.isPackaged;
 
   if (isDev) {
-    mainWindow.loadURL("http://localhost:3000");
+    await mainWindow.loadURL("http://localhost:3000")
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, "out", "index.html")
-    );
+    const outDir = resolveOutDir()
+    console.log("Serving static files from:", outDir)
+    const { server, url } = await startStaticServer(outDir)
+    staticServer = server
+    packagedAppUrl = url
+
+    const redirectPackagedRoute = (targetUrl) => {
+      if (!packagedAppUrl) return false
+      if (!targetUrl.startsWith("file:///")) return false
+      try {
+        const parsed = new URL(targetUrl)
+        const route = parsed.pathname.replace(/^\/[A-Za-z]:/, "")
+        mainWindow.loadURL(`${packagedAppUrl}${route || "/"}`)
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    mainWindow.webContents.on("will-navigate", (event, targetUrl) => {
+      if (redirectPackagedRoute(targetUrl)) event.preventDefault()
+    })
+
+    mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
+      if (redirectPackagedRoute(targetUrl)) {
+        return { action: "deny" }
+      }
+      return { action: "allow" }
+    })
+
+    await mainWindow.loadURL(url)
   }
 }
 // ----------------------------
 // APP READY
 // ----------------------------
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // ✅ Setup SQLite inside Electron ONLY
   let dbPath
 
@@ -267,13 +404,17 @@ ipcMain.handle("get-project-blocks", (event, projectId) => {
     return []
   }
 })
-  createWindow()
+  await createWindow()
 })
 
 // ----------------------------
 // CLOSE APP
 // ----------------------------
 app.on("window-all-closed", () => {
+  if (staticServer) {
+    staticServer.close()
+    staticServer = null
+  }
   if (process.platform !== "darwin") {
     app.quit()
   }

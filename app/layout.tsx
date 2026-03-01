@@ -7,6 +7,7 @@ import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const enableAnalytics = process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === "true"
 
 export const metadata: Metadata = {
   title: "AIConnecto",
@@ -40,7 +41,7 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <BackButton />
         {children}
-        <Analytics />
+        {enableAnalytics ? <Analytics /> : null}
       </body>
     </html>
   )

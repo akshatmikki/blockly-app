@@ -8,3 +8,5 @@ database_updates.sql
 DEPLOYMENT_INSTRUCTIONS.md
 .claude
 SECURITY.md
+out/
+dist/

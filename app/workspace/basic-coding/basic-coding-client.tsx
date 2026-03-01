@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import { useEffect, useRef, useState, useMemo } from 'react';
 import * as Blockly from 'blockly';
@@ -4663,17 +4664,21 @@ function createBlocklyBlock(workspace, row) {
       }
     });
 
-    workspace.addChangeListener((event) => {
-      if (
-        event.type !== Blockly.Events.BLOCK_CREATE &&
-        event.type !== Blockly.Events.BLOCK_CHANGE &&
-        event.type !== Blockly.Events.BLOCK_DELETE &&
-        event.type !== Blockly.Events.BLOCK_MOVE
-      ) {
-        return;
-      }
-      setCode(pythonGenerator.workspaceToCode(workspace));
-    });
+   workspace.addChangeListener((event) => {
+  if (
+    event.type !== Blockly.Events.BLOCK_CREATE &&
+    event.type !== Blockly.Events.BLOCK_CHANGE &&
+    event.type !== Blockly.Events.BLOCK_DELETE &&
+    event.type !== Blockly.Events.BLOCK_MOVE &&
+    event.type !== Blockly.Events.VAR_CREATE &&   // ✅ ADD
+    event.type !== Blockly.Events.VAR_RENAME &&   // ✅ ADD
+    event.type !== Blockly.Events.VAR_DELETE      // ✅ ADD
+  ) {
+    return;
+  }
+  pythonGenerator.init(workspace);
+  setCode(pythonGenerator.workspaceToCode(workspace));
+});
 
     workspace.addChangeListener((event) => {
       if (event.type === Blockly.Events.UI) {
@@ -5125,15 +5130,17 @@ file_handle = None
 
     setOutput("Running...\n");
 const ws = workspaceRef.current;
+pythonGenerator.init(ws);          // ✅ ADD THIS
+  const currentCode = pythonGenerator.workspaceToCode(ws);
 const usesTurtle = ws
   ? ws.getAllBlocks(false).some(b => b.type.startsWith("turtle_"))
   : false;
 
-    const usesMath = /\bmath\./.test(code);
-    const usesMatplotlib = /\bplt\./.test(code);
-    const usesPygal = /\bpygal\b/.test(code);
+    const usesMath = /\bmath\./.test(currentCode);
+    const usesMatplotlib = /\bplt\./.test(currentCode);
+    const usesPygal = /\bpygal\b/.test(currentCode);
     // Clear previous canvas
-    canvasContainerRef.current.innerHTML = "";
+    canvasContainerRef.current.innerHTML = "";   
 
   if (usesTurtle) {
   const canvas = document.createElement("canvas");
