@@ -3545,36 +3545,31 @@ function BasicCodingPage() {
   const activityId = searchParams?.get("activityId")
   const [workspaceReady, setWorkspaceReady] = useState(false);
 
-  // ── Variable-name modal (Electron-safe — no window.prompt needed) ──────────
-  const [varModal, setVarModal] = useState({ open: false, inputVal: '' });
-  // We store the resolve function in a ref so it survives re-renders
-  const varModalResolveRef = useRef<((name: string | null) => void) | null>(null);
-  const varModalInputRef = useRef<HTMLInputElement>(null);
+  // ── Custom Variable Modal (replaces Blockly's blocked prompt() in Electron) ──
+  const [varModal, setVarModal] = useState({ open: false, defaultVal: '' });
+  const varCallbackRef = useRef<((name: string | null) => void) | null>(null);
+  const varInputRef    = useRef<HTMLInputElement>(null);
 
-  /** Show the modal and return a Promise that resolves with the typed name (or null on cancel) */
-  const askVariableName = (defaultVal = 'myVar'): Promise<string | null> =>
-    new Promise((resolve) => {
-      varModalResolveRef.current = resolve;
-      setVarModal({ open: true, inputVal: defaultVal });
-      setTimeout(() => {
-        varModalInputRef.current?.focus();
-        varModalInputRef.current?.select();
-      }, 40);
-    });
-
-  const confirmVarModal = () => {
-    const name = varModalInputRef.current?.value.trim() || varModal.inputVal.trim();
-    setVarModal({ open: false, inputVal: '' });
-    varModalResolveRef.current?.(name || null);
-    varModalResolveRef.current = null;
+  // Called by Blockly.dialog.setPrompt — opens modal, resolves via callback
+  const openVarModal = (message: string, defaultVal: string, callback: (val: string | null) => void) => {
+    varCallbackRef.current = callback;
+    setVarModal({ open: true, defaultVal });
+    setTimeout(() => { varInputRef.current?.focus(); varInputRef.current?.select(); }, 50);
   };
 
-  const cancelVarModal = () => {
-    setVarModal({ open: false, inputVal: '' });
-    varModalResolveRef.current?.(null);
-    varModalResolveRef.current = null;
+  const submitVarModal = () => {
+    const name = (varInputRef.current?.value ?? '').trim();
+    setVarModal({ open: false, defaultVal: '' });
+    varCallbackRef.current?.(name || null);
+    varCallbackRef.current = null;
   };
-  // ───────────────────────────────────────────────────────────────────────────
+
+  const closeVarModal = () => {
+    setVarModal({ open: false, defaultVal: '' });
+    varCallbackRef.current?.(null);
+    varCallbackRef.current = null;
+  };
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const mode = projectId
     ? "PROJECT"
@@ -4537,24 +4532,23 @@ function createBlocklyBlock(workspace, row) {
     workspaceRef.current = workspace;
     setWorkspaceReady(true);
 
-    // ── Override Blockly's built-in "Create Variable" handler ──────────────
-    // Blockly internally calls window.prompt() which is blocked in Electron.
-    // We replace the handler with our own that uses a custom React modal.
-    (Blockly.Variables as any).createVariableButtonHandler = async (
-      ws: Blockly.WorkspaceSvg,
-      _opt_callback?: (name: string) => void,
-      _opt_type?: string,
-    ) => {
-      const name = await askVariableName('myVar');
-      if (!name) return; // user cancelled
-
-      // Guard: don't create duplicate variable names
-      const existing = ws.getVariable(name);
-      if (existing) return;
-
-      ws.createVariable(name);
-    };
-    // ───────────────────────────────────────────────────────────────────────
+    // ── CRITICAL: Override Blockly's internal prompt() with our React modal ──
+    // Blockly.dialog.setPrompt is the official Blockly API to replace ALL
+    // internal prompt calls (variable create, variable rename, etc.)
+    // This is the ONLY way to intercept it in a compiled/minified Electron build.
+    if (typeof (Blockly as any).dialog?.setPrompt === 'function') {
+      (Blockly as any).dialog.setPrompt(
+        (message: string, defaultVal: string, callback: (val: string | null) => void) => {
+          openVarModal(message, defaultVal, callback);
+        }
+      );
+    } else if (typeof (Blockly as any).prompt === 'function') {
+      // Older Blockly versions (< 9) use Blockly.prompt
+      (Blockly as any).prompt = (message: string, defaultVal: string, callback: (val: string | null) => void) => {
+        openVarModal(message, defaultVal, callback);
+      };
+    }
+    // ────────────────────────────────────────────────────────────────────────
     
     const isFieldEditorOpen = () => Boolean((Blockly as any).WidgetDiv?.isVisible?.());
 
@@ -5575,87 +5569,129 @@ plt = _FakePlt()
 
   return (
     <>
-      {/* ── Variable Name Modal (Electron-safe, no window.prompt) ─────────── */}
+      {/* ════════════════════════════════════════════════════════════════════
+          Variable Name Modal  –  Electron-safe (no window.prompt needed)
+          Opens automatically when user clicks "Create Variable" in Blockly
+         ════════════════════════════════════════════════════════════════════ */}
       {varModal.open && (
         <div
+          onClick={(e) => { if (e.target === e.currentTarget) closeVarModal(); }}
           style={{
-            position: 'fixed', inset: 0, zIndex: 99999,
-            background: 'rgba(0,0,0,0.50)',
+            position: 'fixed', inset: 0, zIndex: 999999,
+            background: 'rgba(0,0,0,0.45)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
-          onMouseDown={(e) => { if (e.target === e.currentTarget) cancelVarModal(); }}
         >
           <div
-            onKeyDown={(e) => { if (e.key === 'Enter') confirmVarModal(); if (e.key === 'Escape') cancelVarModal(); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter')  { e.preventDefault(); submitVarModal(); }
+              if (e.key === 'Escape') { e.preventDefault(); closeVarModal();  }
+            }}
             style={{
-              background: '#fff', borderRadius: '12px',
-              padding: '30px 32px 24px', minWidth: '340px',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.28)',
-              display: 'flex', flexDirection: 'column', gap: '18px',
+              background: '#fff',
+              borderRadius: '14px',
+              padding: '28px 30px 22px',
+              minWidth: '350px',
+              maxWidth: '420px',
+              width: '90vw',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.12)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
               fontFamily: 'Arial, sans-serif',
             }}
           >
-            {/* Title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: '#7C88CC', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: '18px',
-              }}>🔤</div>
-              <span style={{ fontSize: '16px', fontWeight: 700, color: '#222' }}>
-                New Variable
-              </span>
+                width: 38, height: 38, borderRadius: '10px',
+                background: 'linear-gradient(135deg, #7C88CC, #5a68b5)',
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center', fontSize: '20px', flexShrink: 0,
+              }}>
+                📦
+              </div>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a1a2e' }}>
+                  Create Variable
+                </div>
+                <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                  Enter a name for the new variable
+                </div>
+              </div>
             </div>
 
-            {/* Label + Input */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', color: '#555', fontWeight: 600 }}>
-                Variable name:
+            {/* Input */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: '#444' }}>
+                Variable name
               </label>
               <input
-                ref={varModalInputRef}
-                defaultValue={varModal.inputVal}
-                onChange={(e) => setVarModal(v => ({ ...v, inputVal: e.target.value }))}
-                style={{
-                  border: '2px solid #7C88CC', borderRadius: '8px',
-                  padding: '9px 13px', fontSize: '15px', outline: 'none',
-                  boxShadow: '0 0 0 3px #7C88CC22', color: '#222',
-                  transition: 'border-color 0.2s',
+                ref={varInputRef}
+                defaultValue={varModal.defaultVal || 'myVar'}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter')  { e.preventDefault(); submitVarModal(); }
+                  if (e.key === 'Escape') { e.preventDefault(); closeVarModal();  }
                 }}
-                placeholder="e.g. myVar"
+                style={{
+                  border: '2px solid #7C88CC',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '15px',
+                  outline: 'none',
+                  color: '#222',
+                  background: '#f8f9ff',
+                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                  boxShadow: '0 0 0 3px rgba(124,136,204,0.18)',
+                }}
+                placeholder="e.g. myVar, counter, score…"
               />
             </div>
 
             {/* Buttons */}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
-                onClick={cancelVarModal}
+                onClick={closeVarModal}
                 style={{
-                  padding: '8px 20px', borderRadius: '8px',
-                  border: '1.5px solid #ccc', background: '#f5f5f5',
-                  cursor: 'pointer', fontSize: '14px', color: '#444',
+                  padding: '9px 22px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #ddd',
+                  background: '#f5f5f5',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#555',
                   fontWeight: 500,
+                  transition: 'background 0.15s',
                 }}
+                onMouseOver={(e) => (e.currentTarget.style.background = '#eee')}
+                onMouseOut={(e)  => (e.currentTarget.style.background = '#f5f5f5')}
               >
                 Cancel
               </button>
               <button
-                onClick={confirmVarModal}
+                onClick={submitVarModal}
                 style={{
-                  padding: '8px 24px', borderRadius: '8px',
-                  border: 'none', background: '#7C88CC',
-                  color: '#fff', cursor: 'pointer',
-                  fontSize: '14px', fontWeight: 700,
-                  boxShadow: '0 2px 8px #7C88CC66',
+                  padding: '9px 26px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #7C88CC, #5a68b5)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  boxShadow: '0 3px 10px rgba(124,136,204,0.45)',
+                  transition: 'opacity 0.15s',
                 }}
+                onMouseOver={(e) => (e.currentTarget.style.opacity = '0.88')}
+                onMouseOut={(e)  => (e.currentTarget.style.opacity = '1')}
               >
-                Create ✓
+                ✓ Create
               </button>
             </div>
           </div>
         </div>
       )}
-      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
 
       <input
         ref={fileInputRef}
