@@ -3545,6 +3545,37 @@ function BasicCodingPage() {
   const activityId = searchParams?.get("activityId")
   const [workspaceReady, setWorkspaceReady] = useState(false);
 
+  // ── Variable-name modal (Electron-safe — no window.prompt needed) ──────────
+  const [varModal, setVarModal] = useState({ open: false, inputVal: '' });
+  // We store the resolve function in a ref so it survives re-renders
+  const varModalResolveRef = useRef<((name: string | null) => void) | null>(null);
+  const varModalInputRef = useRef<HTMLInputElement>(null);
+
+  /** Show the modal and return a Promise that resolves with the typed name (or null on cancel) */
+  const askVariableName = (defaultVal = 'myVar'): Promise<string | null> =>
+    new Promise((resolve) => {
+      varModalResolveRef.current = resolve;
+      setVarModal({ open: true, inputVal: defaultVal });
+      setTimeout(() => {
+        varModalInputRef.current?.focus();
+        varModalInputRef.current?.select();
+      }, 40);
+    });
+
+  const confirmVarModal = () => {
+    const name = varModalInputRef.current?.value.trim() || varModal.inputVal.trim();
+    setVarModal({ open: false, inputVal: '' });
+    varModalResolveRef.current?.(name || null);
+    varModalResolveRef.current = null;
+  };
+
+  const cancelVarModal = () => {
+    setVarModal({ open: false, inputVal: '' });
+    varModalResolveRef.current?.(null);
+    varModalResolveRef.current = null;
+  };
+  // ───────────────────────────────────────────────────────────────────────────
+
   const mode = projectId
     ? "PROJECT"
     : activityId
@@ -4505,6 +4536,25 @@ function createBlocklyBlock(workspace, row) {
 
     workspaceRef.current = workspace;
     setWorkspaceReady(true);
+
+    // ── Override Blockly's built-in "Create Variable" handler ──────────────
+    // Blockly internally calls window.prompt() which is blocked in Electron.
+    // We replace the handler with our own that uses a custom React modal.
+    (Blockly.Variables as any).createVariableButtonHandler = async (
+      ws: Blockly.WorkspaceSvg,
+      _opt_callback?: (name: string) => void,
+      _opt_type?: string,
+    ) => {
+      const name = await askVariableName('myVar');
+      if (!name) return; // user cancelled
+
+      // Guard: don't create duplicate variable names
+      const existing = ws.getVariable(name);
+      if (existing) return;
+
+      ws.createVariable(name);
+    };
+    // ───────────────────────────────────────────────────────────────────────
     
     const isFieldEditorOpen = () => Boolean((Blockly as any).WidgetDiv?.isVisible?.());
 
@@ -4664,21 +4714,17 @@ function createBlocklyBlock(workspace, row) {
       }
     });
 
-   workspace.addChangeListener((event) => {
-  if (
-    event.type !== Blockly.Events.BLOCK_CREATE &&
-    event.type !== Blockly.Events.BLOCK_CHANGE &&
-    event.type !== Blockly.Events.BLOCK_DELETE &&
-    event.type !== Blockly.Events.BLOCK_MOVE &&
-    event.type !== Blockly.Events.VAR_CREATE &&   // ✅ ADD
-    event.type !== Blockly.Events.VAR_RENAME &&   // ✅ ADD
-    event.type !== Blockly.Events.VAR_DELETE      // ✅ ADD
-  ) {
-    return;
-  }
-  pythonGenerator.init(workspace);
-  setCode(pythonGenerator.workspaceToCode(workspace));
-});
+    workspace.addChangeListener((event) => {
+      if (
+        event.type !== Blockly.Events.BLOCK_CREATE &&
+        event.type !== Blockly.Events.BLOCK_CHANGE &&
+        event.type !== Blockly.Events.BLOCK_DELETE &&
+        event.type !== Blockly.Events.BLOCK_MOVE
+      ) {
+        return;
+      }
+      setCode(pythonGenerator.workspaceToCode(workspace));
+    });
 
     workspace.addChangeListener((event) => {
       if (event.type === Blockly.Events.UI) {
@@ -5130,17 +5176,15 @@ file_handle = None
 
     setOutput("Running...\n");
 const ws = workspaceRef.current;
-pythonGenerator.init(ws);          // ✅ ADD THIS
-  const currentCode = pythonGenerator.workspaceToCode(ws);
 const usesTurtle = ws
   ? ws.getAllBlocks(false).some(b => b.type.startsWith("turtle_"))
   : false;
 
-    const usesMath = /\bmath\./.test(currentCode);
-    const usesMatplotlib = /\bplt\./.test(currentCode);
-    const usesPygal = /\bpygal\b/.test(currentCode);
+    const usesMath = /\bmath\./.test(code);
+    const usesMatplotlib = /\bplt\./.test(code);
+    const usesPygal = /\bpygal\b/.test(code);
     // Clear previous canvas
-    canvasContainerRef.current.innerHTML = "";   
+    canvasContainerRef.current.innerHTML = "";
 
   if (usesTurtle) {
   const canvas = document.createElement("canvas");
@@ -5531,6 +5575,88 @@ plt = _FakePlt()
 
   return (
     <>
+      {/* ── Variable Name Modal (Electron-safe, no window.prompt) ─────────── */}
+      {varModal.open && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999,
+            background: 'rgba(0,0,0,0.50)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) cancelVarModal(); }}
+        >
+          <div
+            onKeyDown={(e) => { if (e.key === 'Enter') confirmVarModal(); if (e.key === 'Escape') cancelVarModal(); }}
+            style={{
+              background: '#fff', borderRadius: '12px',
+              padding: '30px 32px 24px', minWidth: '340px',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.28)',
+              display: 'flex', flexDirection: 'column', gap: '18px',
+              fontFamily: 'Arial, sans-serif',
+            }}
+          >
+            {/* Title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: '#7C88CC', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', fontSize: '18px',
+              }}>🔤</div>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: '#222' }}>
+                New Variable
+              </span>
+            </div>
+
+            {/* Label + Input */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '13px', color: '#555', fontWeight: 600 }}>
+                Variable name:
+              </label>
+              <input
+                ref={varModalInputRef}
+                defaultValue={varModal.inputVal}
+                onChange={(e) => setVarModal(v => ({ ...v, inputVal: e.target.value }))}
+                style={{
+                  border: '2px solid #7C88CC', borderRadius: '8px',
+                  padding: '9px 13px', fontSize: '15px', outline: 'none',
+                  boxShadow: '0 0 0 3px #7C88CC22', color: '#222',
+                  transition: 'border-color 0.2s',
+                }}
+                placeholder="e.g. myVar"
+              />
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={cancelVarModal}
+                style={{
+                  padding: '8px 20px', borderRadius: '8px',
+                  border: '1.5px solid #ccc', background: '#f5f5f5',
+                  cursor: 'pointer', fontSize: '14px', color: '#444',
+                  fontWeight: 500,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmVarModal}
+                style={{
+                  padding: '8px 24px', borderRadius: '8px',
+                  border: 'none', background: '#7C88CC',
+                  color: '#fff', cursor: 'pointer',
+                  fontSize: '14px', fontWeight: 700,
+                  boxShadow: '0 2px 8px #7C88CC66',
+                }}
+              >
+                Create ✓
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+
       <input
         ref={fileInputRef}
         type="file"
