@@ -122,6 +122,15 @@
     "target": "nsis"
   },
 
+  "mac": {
+    "target": "dmg",
+    "category": "public.app-category.developer-tools"
+  },
+
+  "linux": {
+    "target": "AppImage"
+  },
+
   "nsis": {
     "oneClick": false,
     "perMachine": false,
