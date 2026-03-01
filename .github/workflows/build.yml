@@ -16,11 +16,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # FIX 1: Node 22 required by @electron/rebuild@4.0.3
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      - run: npm install
+      # FIX 2: Cache Electron binary to avoid 502 download errors
+      - name: Cache Electron binary
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/AppData/Local/electron/Cache
+            ~/Library/Caches/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            electron-${{ runner.os }}-
+
+      # FIX 3: Skip binary download during npm install (uses cache above)
+      - name: Install dependencies
+        run: npm install
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
 
       - name: Build Next App
         run: npm run build
