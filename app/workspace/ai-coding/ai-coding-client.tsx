@@ -4625,6 +4625,37 @@ function AICodingPage() {
   const activityId = searchParams?.get("activityId")
   const [workspaceReady, setWorkspaceReady] = useState(false);
 
+  // Custom Variable Modal (replaces blocked prompt() in Electron)
+  const [varModal, setVarModal] = useState({ open: false, defaultVal: '' });
+  const varCallbackRef = useRef<((name: string | null) => void) | null>(null);
+  const varInputRef = useRef<HTMLInputElement>(null);
+
+  const openVarModal = (
+    message: string,
+    defaultVal: string,
+    callback: (val: string | null) => void
+  ) => {
+    varCallbackRef.current = callback;
+    setVarModal({ open: true, defaultVal });
+    setTimeout(() => {
+      varInputRef.current?.focus();
+      varInputRef.current?.select();
+    }, 50);
+  };
+
+  const submitVarModal = () => {
+    const name = (varInputRef.current?.value ?? '').trim();
+    setVarModal({ open: false, defaultVal: '' });
+    varCallbackRef.current?.(name || null);
+    varCallbackRef.current = null;
+  };
+
+  const closeVarModal = () => {
+    setVarModal({ open: false, defaultVal: '' });
+    varCallbackRef.current?.(null);
+    varCallbackRef.current = null;
+  };
+
   const mode = projectId
     ? "PROJECT"
     : activityId
@@ -5520,6 +5551,57 @@ function AICodingPage() {
 
     workspaceRef.current = workspace;
     setWorkspaceReady(true);
+
+    // Override Blockly prompt path to avoid window.prompt in Electron.
+    if (typeof (Blockly as any).dialog?.setPrompt === 'function') {
+      (Blockly as any).dialog.setPrompt(
+        (message: string, defaultVal: string, callback: (val: string | null) => void) => {
+          openVarModal(message, defaultVal, callback);
+        }
+      );
+    } else if (typeof (Blockly as any).prompt === 'function') {
+      (Blockly as any).prompt = (message: string, defaultVal: string, callback: (val: string | null) => void) => {
+        openVarModal(message, defaultVal, callback);
+      };
+    }
+
+    // Force Variables flyout "Create Variable" to use modal callback path.
+    try {
+      workspace.registerButtonCallback('CREATE_VARIABLE', () => {
+        const defaultName =
+          typeof (Blockly as any).Variables?.generateUniqueName === 'function'
+            ? (Blockly as any).Variables.generateUniqueName(workspace)
+            : 'item';
+
+        openVarModal(
+          (Blockly as any).Msg?.NEW_VARIABLE_TITLE || 'New variable name:',
+          defaultName,
+          (value: string | null) => {
+            const name = (value || '').trim();
+            if (!name) return;
+
+            const existing = workspace.getVariable(name);
+            if (existing) {
+              const template =
+                (Blockly as any).Msg?.VARIABLE_ALREADY_EXISTS ||
+                'Variable "%1" already exists.';
+              const msg = template.replace('%1', existing.name);
+
+              if (typeof (Blockly as any).dialog?.alert === 'function') {
+                (Blockly as any).dialog.alert(msg);
+              } else {
+                window.alert(msg);
+              }
+              return;
+            }
+
+            workspace.createVariable(name);
+          }
+        );
+      });
+    } catch (error) {
+      console.warn('Failed to register CREATE_VARIABLE callback override', error);
+    }
 
     // Listen for zoom changes
     const ws = workspace as Blockly.WorkspaceSvg;
@@ -8874,6 +8956,130 @@ plt = _FakePlt()
 
   return (
     <>
+      {varModal.open && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) closeVarModal(); }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999999,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); submitVarModal(); }
+              if (e.key === 'Escape') { e.preventDefault(); closeVarModal(); }
+            }}
+            style={{
+              background: '#fff',
+              borderRadius: '14px',
+              padding: '28px 30px 22px',
+              minWidth: '350px',
+              maxWidth: '420px',
+              width: '90vw',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.12)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              fontFamily: 'Arial, sans-serif',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: 38,
+                height: 38,
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #7C88CC, #5a68b5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                flexShrink: 0,
+              }}>
+                📦
+              </div>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a1a2e' }}>
+                  Create Variable
+                </div>
+                <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                  Enter a name for the new variable
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: '#444' }}>
+                Variable name
+              </label>
+              <input
+                ref={varInputRef}
+                defaultValue={varModal.defaultVal || 'myVar'}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); submitVarModal(); }
+                  if (e.key === 'Escape') { e.preventDefault(); closeVarModal(); }
+                }}
+                style={{
+                  border: '2px solid #7C88CC',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '15px',
+                  outline: 'none',
+                  color: '#222',
+                  background: '#f8f9ff',
+                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                  boxShadow: '0 0 0 3px rgba(124,136,204,0.18)',
+                }}
+                placeholder="e.g. myVar, counter, score..."
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={closeVarModal}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #ddd',
+                  background: '#f5f5f5',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#555',
+                  fontWeight: 500,
+                  transition: 'background 0.15s',
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.background = '#eee')}
+                onMouseOut={(e) => (e.currentTarget.style.background = '#f5f5f5')}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitVarModal}
+                style={{
+                  padding: '9px 26px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #7C88CC, #5a68b5)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  boxShadow: '0 3px 10px rgba(124,136,204,0.45)',
+                  transition: 'opacity 0.15s',
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.opacity = '0.88')}
+                onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}
+              >
+                ✓ Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Script
         src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"
