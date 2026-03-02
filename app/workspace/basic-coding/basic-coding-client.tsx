@@ -4548,6 +4548,45 @@ function createBlocklyBlock(workspace, row) {
         openVarModal(message, defaultVal, callback);
       };
     }
+
+    // Force the Variables flyout "Create Variable" button to use the modal path.
+    // This avoids any fallback to window.prompt in Electron.
+    try {
+      workspace.registerButtonCallback('CREATE_VARIABLE', () => {
+        const defaultName =
+          typeof (Blockly as any).Variables?.generateUniqueName === 'function'
+            ? (Blockly as any).Variables.generateUniqueName(workspace)
+            : 'item';
+
+        openVarModal(
+          (Blockly as any).Msg?.NEW_VARIABLE_TITLE || 'New variable name:',
+          defaultName,
+          (value: string | null) => {
+            const name = (value || '').trim();
+            if (!name) return;
+
+            const existing = workspace.getVariable(name);
+            if (existing) {
+              const template =
+                (Blockly as any).Msg?.VARIABLE_ALREADY_EXISTS ||
+                'Variable "%1" already exists.';
+              const msg = template.replace('%1', existing.name);
+
+              if (typeof (Blockly as any).dialog?.alert === 'function') {
+                (Blockly as any).dialog.alert(msg);
+              } else {
+                window.alert(msg);
+              }
+              return;
+            }
+
+            workspace.createVariable(name);
+          }
+        );
+      });
+    } catch (error) {
+      console.warn('Failed to register CREATE_VARIABLE callback override', error);
+    }
     // ────────────────────────────────────────────────────────────────────────
     
     const isFieldEditorOpen = () => Boolean((Blockly as any).WidgetDiv?.isVisible?.());
