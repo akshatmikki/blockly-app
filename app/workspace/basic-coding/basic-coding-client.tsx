@@ -2293,6 +2293,57 @@ javascriptGenerator.forBlock['colour_picker'] = function (block) {
     return "break;\n";
   };
 
+  javascriptGenerator.forBlock["controls_listen"] = function () {
+    return `(function() {
+  const canvas = document.getElementById("turtleCanvas");
+  if (canvas) {
+    canvas.setAttribute("tabindex", "0");
+    canvas.focus();
+  }
+})();\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_onkey"] = function (block) {
+    const funcName = javascriptGenerator.nameDB_.getName(
+      block.getFieldValue("FUNC"),
+      Blockly.Names.NameType.VARIABLE
+    );
+    const key = block.getFieldValue("KEY");
+    const keyMap = {
+      Up: "ArrowUp",
+      Down: "ArrowDown",
+      Left: "ArrowLeft",
+      Right: "ArrowRight"
+    };
+    const keyValue = keyMap[key] || key;
+    return `(function() {
+  const handler = (e) => {
+    if (e.key === "${keyValue}") {
+      if (typeof ${funcName} === "function") { ${funcName}(); }
+    }
+  };
+  document.addEventListener("keydown", handler);
+})();\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_onclick"] = function (block) {
+    const funcName = javascriptGenerator.nameDB_.getName(
+      block.getFieldValue("FUNC"),
+      Blockly.Names.NameType.VARIABLE
+    );
+    return `(function() {
+  const handler = () => {
+    if (typeof ${funcName} === "function") { ${funcName}(); }
+  };
+  const canvas = document.getElementById("turtleCanvas");
+  (canvas || document).addEventListener("click", handler);
+})();\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_clear_screen"] = function () {
+    return "__turtle.clear();\n";
+  };
+
 
   /* ==========================
      MOVE (FORWARD / BACKWARD)
@@ -2472,8 +2523,7 @@ const definePythonGenerators = () => {
 
   pythonGenerator.forBlock['file_open'] = function (block, generator) {
     generator.definitions_['file_runtime'] =
-      `from io import StringIO
-def open_uploaded(filename, mode="r"):
+      `def open_uploaded(filename, mode="r"):
     if filename not in __uploaded_files:
         raise FileNotFoundError(filename)
     return StringIO(__uploaded_files[filename])
@@ -5243,7 +5293,30 @@ function renderPlot(plot, labels) {
       .replace(/'/g, "\\'");
 
     return `
-from io import StringIO
+class StringIO:
+    def __init__(self, initial=""):
+        self._data = "" if initial is None else str(initial)
+        self._pos = 0
+        self.closed = False
+
+    def read(self):
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
+        data = self._data[self._pos :]
+        self._pos = len(self._data)
+        return data
+
+    def write(self, s):
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
+        text = "" if s is None else str(s)
+        self._data = self._data[: self._pos] + text + self._data[self._pos + len(text) :]
+        self._pos += len(text)
+        return len(text)
+
+    def close(self):
+        self.closed = True
+
 __uploaded_files = ${files}
 
 def open_uploaded(filename, mode="r"):

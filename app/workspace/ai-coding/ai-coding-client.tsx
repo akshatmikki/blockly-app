@@ -2868,6 +2868,57 @@ const defineJavascriptGenerators = () => {
     return "break;\n";
   };
 
+  javascriptGenerator.forBlock["controls_listen"] = function () {
+    return `(function() {
+  const canvas = document.getElementById("turtleCanvas");
+  if (canvas) {
+    canvas.setAttribute("tabindex", "0");
+    canvas.focus();
+  }
+})();\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_onkey"] = function (block) {
+    const funcName = javascriptGenerator.nameDB_.getName(
+      block.getFieldValue("FUNC"),
+      Blockly.Names.NameType.VARIABLE
+    );
+    const key = block.getFieldValue("KEY");
+    const keyMap = {
+      Up: "ArrowUp",
+      Down: "ArrowDown",
+      Left: "ArrowLeft",
+      Right: "ArrowRight"
+    };
+    const keyValue = keyMap[key] || key;
+    return `(function() {
+  const handler = (e) => {
+    if (e.key === "${keyValue}") {
+      if (typeof ${funcName} === "function") { ${funcName}(); }
+    }
+  };
+  document.addEventListener("keydown", handler);
+})();\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_onclick"] = function (block) {
+    const funcName = javascriptGenerator.nameDB_.getName(
+      block.getFieldValue("FUNC"),
+      Blockly.Names.NameType.VARIABLE
+    );
+    return `(function() {
+  const handler = () => {
+    if (typeof ${funcName} === "function") { ${funcName}(); }
+  };
+  const canvas = document.getElementById("turtleCanvas");
+  (canvas || document).addEventListener("click", handler);
+})();\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_clear_screen"] = function () {
+    return "__turtle.clear();\n";
+  };
+
 
   /* ==========================
      MOVE (FORWARD / BACKWARD)
@@ -3357,7 +3408,6 @@ const definePythonGenerators = () => {
     }
 
     gen.definitions_['file_runtime'] = `
-from io import StringIO
 def open_uploaded(filename, mode="r"):
     if filename not in __uploaded_files:
         raise FileNotFoundError(filename)
@@ -4584,6 +4634,21 @@ let objectImage: HTMLImageElement | null = null;
 let objectDetections: any[] = [];
 let cocoModel: any = null;
 
+// Teachable Machine
+let tmModel: any = null;
+let tmWebcam: any = null;
+let tmLoadedImage: HTMLImageElement | null = null;
+let tmClassNames: string[] = [];
+let tmModelMode: "tmImage" | "tfjs" | null = null;
+let currentPrediction: any = null;
+let currentConfidence = 0;
+let predictionInterval: any = null;
+let predictionAnimationId: any = null;
+let pendingPredictionConfig: any = null; // {type, src, outputCallback, containerRef}
+let isModelReady = false;
+let isWebcamReady = false;
+let isPredicting = false;
+
 // Face Recognition
 let faceRecogImage: HTMLImageElement | null = null;
 let faceRecogResult: any = null;
@@ -4663,9 +4728,6 @@ function AICodingPage() {
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [showDebug, setShowDebug] = useState(true);
   const searchParams = useSearchParams()
-  let cocoModel: cocoSsd.ObjectDetection | null = null;
-  let objectImage: HTMLImageElement | null = null;
-  let objectDetections: cocoSsd.DetectedObject[] = [];
 
   const projectId = searchParams?.get("projectId")
   const activityId = searchParams?.get("activityId")
@@ -5895,21 +5957,6 @@ function AICodingPage() {
       alert("Webcam access denied");
     }
   }
-  let tmModel = null;
-  let tmWebcam = null;
-  let tmLoadedImage = null;
-  let tmClassNames: string[] = [];
-  let tmModelMode: "tmImage" | "tfjs" | null = null;
-  let currentPrediction = null;
-  let currentConfidence = 0;
-  let predictionInterval = null;
-  let predictionAnimationId = null;
-
-  // State tracking for auto-start
-  let pendingPredictionConfig = null; // {type, src, outputCallback, containerRef}
-  let isModelReady = false;
-  let isWebcamReady = false;
-
   function checkAndStartPrediction() {
     if (!pendingPredictionConfig) return;
 
@@ -6468,8 +6515,6 @@ function AICodingPage() {
     outputCallback("Select image source popup opened.");
   }
 
-  let isPredicting = false;
-
   async function predictFromWebcam(type, outputCallback, containerRef) {
     // If not ready yet, save config for auto-start
     if (!tmModel || !tmWebcam || !isModelReady || !isWebcamReady) {
@@ -6856,7 +6901,12 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
               outputCallback("🔄 Initializing TensorFlow...");
 
               // Force backend (IMPORTANT for Next.js)
-              await tf.setBackend("webgl");
+              try {
+                await tf.setBackend("webgl");
+              } catch (err) {
+                console.warn("WebGL backend failed, falling back to CPU", err);
+                await tf.setBackend("cpu");
+              }
               await tf.ready();
 
               outputCallback(`🔄 Backend ready: ${tf.getBackend()}`);
@@ -7850,7 +7900,30 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
       .replace(/'/g, "\\'");
 
     return `
-from io import StringIO
+class StringIO:
+    def __init__(self, initial=""):
+        self._data = "" if initial is None else str(initial)
+        self._pos = 0
+        self.closed = False
+
+    def read(self):
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
+        data = self._data[self._pos :]
+        self._pos = len(self._data)
+        return data
+
+    def write(self, s):
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
+        text = "" if s is None else str(s)
+        self._data = self._data[: self._pos] + text + self._data[self._pos + len(text) :]
+        self._pos += len(text)
+        return len(text)
+
+    def close(self):
+        self.closed = True
+
 __uploaded_files = ${files}
 
 def open_uploaded(filename, mode="r"):
