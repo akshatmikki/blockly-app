@@ -2821,6 +2821,53 @@ const defineJavascriptGenerators = () => {
     return [`"${color}"`, Order.ATOMIC];
   };
 
+  /* ==========================
+     CONTROL BLOCKS (JS)
+     ========================== */
+  javascriptGenerator.forBlock["controls_repeat"] = function (block) {
+    const times =
+      javascriptGenerator.valueToCode(block, "TIMES", Order.NONE) || "0";
+    const branch = javascriptGenerator.statementToCode(block, "DO");
+    return `for (let __count = 0; __count < ${times}; __count++) {\n${branch}}\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_repeat_while"] = function (block) {
+    const condition =
+      javascriptGenerator.valueToCode(block, "CONDITION", Order.NONE) || "false";
+    const branch = javascriptGenerator.statementToCode(block, "DO");
+    return `while (${condition}) {\n${branch}}\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_for"] = function (block) {
+    const varName = javascriptGenerator.nameDB_.getName(
+      block.getFieldValue("VAR"),
+      Blockly.Names.NameType.VARIABLE
+    );
+    const start =
+      javascriptGenerator.valueToCode(block, "FROM", Order.NONE) || "0";
+    const end =
+      javascriptGenerator.valueToCode(block, "TO", Order.NONE) || "0";
+    const by =
+      javascriptGenerator.valueToCode(block, "BY", Order.NONE) || "1";
+    const branch = javascriptGenerator.statementToCode(block, "DO");
+    return `for (let ${varName} = ${start}; ${varName} <= ${end}; ${varName} += ${by}) {\n${branch}}\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_forEach"] = function (block) {
+    const varName = javascriptGenerator.nameDB_.getName(
+      block.getFieldValue("VAR"),
+      Blockly.Names.NameType.VARIABLE
+    );
+    const list =
+      javascriptGenerator.valueToCode(block, "LIST", Order.NONE) || "[]";
+    const branch = javascriptGenerator.statementToCode(block, "DO");
+    return `for (const ${varName} of ${list}) {\n${branch}}\n`;
+  };
+
+  javascriptGenerator.forBlock["controls_flow_statements"] = function () {
+    return "break;\n";
+  };
+
 
   /* ==========================
      MOVE (FORWARD / BACKWARD)
@@ -3312,7 +3359,6 @@ const definePythonGenerators = () => {
     gen.definitions_['file_runtime'] = `
 from io import StringIO
 def open_uploaded(filename, mode="r"):
-    print("DEBUG FILES:", list(__uploaded_files.keys()))
     if filename not in __uploaded_files:
         raise FileNotFoundError(filename)
     return StringIO(__uploaded_files[filename])
@@ -5799,6 +5845,7 @@ function AICodingPage() {
   async function showSpriteWithWebcam(spriteName) {
     if (!canvasContainerRef.current) return;
 
+    stopWebcam();
     canvasContainerRef.current.innerHTML = "";
 
     // Layout container
@@ -5814,6 +5861,8 @@ function AICodingPage() {
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
+    video.muted = true;
+    video.setAttribute("muted", "");
     video.style.width = "48%";
     video.style.borderRadius = "12px";
     video.style.background = "#000";
@@ -5829,11 +5878,18 @@ function AICodingPage() {
     canvasContainerRef.current.appendChild(wrapper);
 
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        alert("Webcam not supported in this environment");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: false
       });
       video.srcObject = stream;
+      await video.play().catch((err) => {
+        console.warn("Webcam autoplay blocked", err);
+      });
     } catch (err) {
       console.error("Webcam error:", err);
       alert("Webcam access denied");
@@ -7640,6 +7696,7 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
   async function showSpriteWithWebcam(spriteName) {
     if (!canvasContainerRef.current) return;
 
+    stopWebcam();
     canvasContainerRef.current.innerHTML = "";
 
     // Layout container
@@ -7655,6 +7712,8 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
+    video.muted = true;
+    video.setAttribute("muted", "");
     video.style.width = "48%";
     video.style.borderRadius = "12px";
     video.style.background = "#000";
@@ -7670,11 +7729,18 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
     canvasContainerRef.current.appendChild(wrapper);
 
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        alert("Webcam not supported in this environment");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: false
       });
       video.srcObject = stream;
+      await video.play().catch((err) => {
+        console.warn("Webcam autoplay blocked", err);
+      });
     } catch (err) {
       console.error("Webcam error:", err);
       alert("Webcam access denied");
@@ -7779,9 +7845,7 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
   }
 
   function injectUploadedFiles(code) {
-    if (!window.__uploadedFiles) return code;
-
-    const files = JSON.stringify(window.__uploadedFiles)
+    const files = JSON.stringify(window.__uploadedFiles || {})
       .replace(/\\/g, "\\\\")
       .replace(/'/g, "\\'");
 
@@ -7829,27 +7893,11 @@ file_handle = None
       canvas.style.borderRadius = "8px";
       canvas.style.backgroundColor = "#ffffff";
       canvasContainerRef.current.appendChild(canvas);
-      // ✅ Sync real resolution AFTER append
+      // ✅ Sync drawing resolution AFTER append.
+      // Keep the internal size aligned with visible size so turtle starts centered.
       const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      const ctx = canvas.getContext("2d");
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const turtleDiv = document.createElement("div");
-      turtleDiv.id = "turtleCanvas";
-      turtleDiv.style.width = "100%";
-      turtleDiv.style.height = "500px";
-      turtleDiv.style.border = "2px solid #5566AA";
-      turtleDiv.style.borderRadius = "8px";
-      turtleDiv.style.backgroundColor = "#ffffff";
-      turtleDiv.style.position = "relative";
-      canvasContainerRef.current.appendChild(turtleDiv);
-      // Turtle graphics config MUST be before import turtle
-      Sk.TurtleGraphics = Sk.TurtleGraphics || {};
-      Sk.TurtleGraphics.target = "turtleCanvas";
-      Sk.TurtleGraphics.width = 800;
-      Sk.TurtleGraphics.height = 500;
+      canvas.width = Math.max(1, Math.floor(rect.width));
+      canvas.height = Math.max(1, Math.floor(rect.height));
     }
     let pendingPlot = null;
     let plotLabels = { x: "", y: "" };
@@ -8923,23 +8971,35 @@ plt = _FakePlt()
     }
   };
 
-  function handleFileUpload(e) {
-    const file = e.target.files[0];
+  async function handleFileUpload(e) {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
+    const text = await file.text();
 
-    reader.onload = () => {
-      if (!Sk.builtinFiles) {
-        Sk.builtinFiles = { files: {} };
+    window.__uploadedFiles = window.__uploadedFiles || {};
+    window.__uploadedFiles[file.name] = text;
+    window.__fileUploaded = true;
+
+    if (!Sk.builtinFiles) {
+      Sk.builtinFiles = { files: {} };
+    }
+    Sk.builtinFiles["files"][file.name] = text;
+
+    const ws = workspaceRef.current;
+    if (ws) {
+      const blocks = ws.getAllBlocks(false);
+      const openBlock = blocks.find(b => b.type === "file_open");
+      if (openBlock) {
+        openBlock.setFieldValue(file.name, "FILENAME");
       }
+    }
 
-      Sk.builtinFiles["files"][file.name] = reader.result;
+    if (e.target) {
+      e.target.value = "";
+    }
 
-      alert(`File "${file.name}" uploaded successfully`);
-    };
-
-    reader.readAsText(file);
+    runCode();
   }
 
   const resetWorkspace = () => {
@@ -9109,34 +9169,6 @@ plt = _FakePlt()
       <Script
         src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
         strategy="beforeInteractive"
-      />
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        style={{ display: "none" }}
-        onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-
-          const text = await file.text();
-
-          window.__uploadedFiles = window.__uploadedFiles || {};
-          window.__uploadedFiles[file.name] = text;
-          window.__fileUploaded = true;
-
-          // 🔥 AUTO-FILL filename into Blockly block
-          const ws = workspaceRef.current;
-          if (ws) {
-            const blocks = ws.getAllBlocks(false);
-            const openBlock = blocks.find(b => b.type === "file_open");
-            if (openBlock) {
-              openBlock.setFieldValue(file.name, "FILENAME");
-            }
-          }
-
-          runCode();
-        }}
       />
 
       <input
