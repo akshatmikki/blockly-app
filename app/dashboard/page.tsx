@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [projectName, setProjectName] = useState("");
+  const [createError, setCreateError] = useState("");
   const [selectedModule, setSelectedModule] = useState<any>(null);
   const [isCreatingNewProject, setIsCreatingNewProject] = useState(false);
   const [activeTab, setActiveTab] = useState<"PROJECTS" | "TUTORIALS">("PROJECTS");
@@ -88,6 +89,7 @@ export default function DashboardPage() {
   const handleBackFromCreate = () => {
     setShowModal(false);
     setProjectName("");
+    setCreateError("");
     setIsCreatingNewProject(false);
   };
 
@@ -123,9 +125,14 @@ export default function DashboardPage() {
   const userId = localStorage.getItem("userId");
 
   if (!projectName.trim()) {
-    alert("Project name required");
+    setCreateError("Project name required");
     return;
   }
+  if (!userId) {
+    setCreateError("Missing user session. Please log in again.");
+    return;
+  }
+  setCreateError("");
 
   try {
     const response = await window.electronAPI.createProject({
@@ -134,13 +141,15 @@ export default function DashboardPage() {
     });
 
     if (!response?.success) {
-      alert("Failed to create project");
+      const message = response?.error || response?.message || "Failed to create project";
+      setCreateError(message);
       return;
     }
 
     // ✅ success
     setShowModal(false);
     setProjectName("");
+    setCreateError("");
     setIsCreatingNewProject(false);
 
     router.push(
@@ -149,7 +158,8 @@ export default function DashboardPage() {
 
   } catch (error) {
     console.error("Create project failed:", error);
-    alert("Failed to create project");
+    const message = (error as any)?.message || String(error);
+    setCreateError(message);
   }
 };
 
@@ -218,6 +228,8 @@ export default function DashboardPage() {
                 className="mt-6 bg-white text-black hover:bg-gray-100 w-full"
                 onClick={() => {
                   setSelectedModule(module);
+                  setCreateError("");
+                  setProjectName("");
                   setIsCreatingNewProject(true);
                   setShowModal(true);
                 }}
@@ -241,9 +253,17 @@ export default function DashboardPage() {
             {/* CREATE MODE */}
             {projects.length === 0 || isCreatingNewProject ? (
               <>
+                {createError && (
+                  <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 whitespace-pre-wrap">
+                    {createError}
+                  </div>
+                )}
                 <input
                   value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
+                  onChange={(e) => {
+                    setProjectName(e.target.value);
+                    if (createError) setCreateError("");
+                  }}
                   placeholder="Project Name"
                   className="w-full border px-3 py-2 rounded mb-4"
                 />
@@ -281,7 +301,11 @@ export default function DashboardPage() {
                 <Button
                   variant="outline"
                   className="w-full mt-3"
-                  onClick={() => setIsCreatingNewProject(true)}
+                  onClick={() => {
+                    setIsCreatingNewProject(true);
+                    setProjectName("");
+                    setCreateError("");
+                  }}
                 >
                   + Create New Project
                 </Button>

@@ -354,8 +354,9 @@ ipcMain.handle("create-project", (event, { projectName, userId }) => {
       projectId: result.lastInsertRowid,
     }
   } catch (err) {
-    console.error("CREATE PROJECT ERROR:", err.message)
-    return { success: false }
+    const message = err?.message || String(err)
+    console.error("CREATE PROJECT ERROR:", message)
+    return { success: false, message, error: message }
   }
 })
 
