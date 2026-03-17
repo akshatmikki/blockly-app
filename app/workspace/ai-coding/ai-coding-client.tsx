@@ -5711,11 +5711,67 @@ function AICodingPage() {
       console.warn('Failed to register CREATE_VARIABLE callback override', error);
     }
 
-    // Listen for zoom changes
     const ws = workspace as Blockly.WorkspaceSvg;
 
+    const isFieldEditorOpen = () => Boolean((Blockly as any).WidgetDiv?.isVisible?.());
+
+    const lockFlyoutScale = () => {
+      if (isFieldEditorOpen()) return;
+      const flyout = (ws as any).getFlyout?.();
+      const flyoutWorkspace = flyout?.getWorkspace?.();
+      if (!flyoutWorkspace) return;
+
+      const currentScale = typeof flyoutWorkspace.scale === 'number' ? flyoutWorkspace.scale : 1;
+      if (Math.abs(currentScale - 1) < 0.001) return;
+
+      // Keep toolbox/flyout blocks visually fixed, independent of main workspace zoom.
+      if (typeof flyoutWorkspace.setScale === 'function') {
+        flyoutWorkspace.setScale(1);
+      } else {
+        flyoutWorkspace.scale = 1;
+      }
+
+      // Force Blockly to recompute flyout width/metrics at the new scale so blocks don't get clipped.
+      flyoutWorkspace.resizeContents?.();
+      try {
+        flyout?.reflow?.();
+      } catch { }
+      try {
+        (flyoutWorkspace as any).scrollbar?.resize?.();
+      } catch { }
+      try {
+        Blockly.svgResize(ws);
+      } catch { }
+    };
+
+    const updateFlyoutScrollbars = () => {
+      const scrollbars = blocklyDiv.current
+        ?.querySelectorAll<HTMLElement>('.blocklyFlyoutScrollbar');
+
+      scrollbars?.forEach((el) => {
+        const flyout = el.previousElementSibling as HTMLElement | null;
+
+        if (
+          !flyout ||
+          flyout.classList.contains('blocklyHidden') ||
+          flyout.style.display === 'none' ||
+          !flyout.querySelector('.blocklyBlockCanvas')
+        ) {
+          el.style.display = 'none';
+          el.style.visibility = 'hidden';
+          el.style.opacity = '0';
+        } else {
+          el.style.display = '';
+          el.style.visibility = '';
+          el.style.opacity = '';
+        }
+      });
+    };
+
+    // Listen for zoom changes
     ws.addChangeListener((e: Blockly.Events.Abstract) => {
       if (e.type === Blockly.Events.VIEWPORT_CHANGE) {
+        lockFlyoutScale();
         updateFlyoutScrollbars();
       }
 
@@ -5754,34 +5810,11 @@ function AICodingPage() {
             }
           });
 
+          lockFlyoutScale();
           (wsSvg as any).scroll?.(0, 0);
         });
       }
     });
-
-    const updateFlyoutScrollbars = () => {
-      const scrollbars = blocklyDiv.current
-        ?.querySelectorAll<HTMLElement>('.blocklyFlyoutScrollbar');
-
-      scrollbars?.forEach((el) => {
-        const flyout = el.previousElementSibling as HTMLElement | null;
-
-        if (
-          !flyout ||
-          flyout.classList.contains('blocklyHidden') ||
-          flyout.style.display === 'none' ||
-          !flyout.querySelector('.blocklyBlockCanvas')
-        ) {
-          el.style.display = 'none';
-          el.style.visibility = 'hidden';
-          el.style.opacity = '0';
-        } else {
-          el.style.display = '';
-          el.style.visibility = '';
-          el.style.opacity = '';
-        }
-      });
-    };
 
     let flyoutObserver: MutationObserver | null = null;
     let containerObserver: MutationObserver | null = null;
@@ -5823,6 +5856,7 @@ function AICodingPage() {
       preventToolboxScroll();
       attachFlyoutObserver();
       updateFlyoutScrollbars();
+      lockFlyoutScale();
     }, 100);
 
     if (blocklyDiv.current) {
@@ -5842,6 +5876,7 @@ function AICodingPage() {
         setTimeout(() => {
           preventToolboxScroll();
           updateFlyoutScrollbars();
+          lockFlyoutScale();
         }, 50);
       }
     });

@@ -4702,7 +4702,18 @@ function createBlocklyBlock(workspace, row) {
         flyoutWorkspace.scale = 1;
       }
 
+      // When the flyout scale is overridden, force Blockly to recompute flyout
+      // width/metrics at the new scale so blocks don't get clipped.
       flyoutWorkspace.resizeContents?.();
+      try {
+        flyout?.reflow?.();
+      } catch { }
+      try {
+        (flyoutWorkspace as any).scrollbar?.resize?.();
+      } catch { }
+      try {
+        Blockly.svgResize(workspace);
+      } catch { }
     };
 
     // Listen for zoom changes and keep flyout blocks at fixed size

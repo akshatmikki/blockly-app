@@ -51,14 +51,18 @@ export default function BackButton() {
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleBack}
-      className="fixed left-4 top-4 z-40 inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-4 text-sm font-medium text-gray-800 shadow-lg backdrop-blur-sm transition hover:bg-white"
-      aria-label="Go back"
-    >
-      <ArrowLeft className="h-4 w-4" />
-      Back
-    </button>
+    <div className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+      <div className="mx-auto flex h-14 max-w-screen-2xl items-center px-4">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-4 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-white"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+      </div>
+    </div>
   )
 }
