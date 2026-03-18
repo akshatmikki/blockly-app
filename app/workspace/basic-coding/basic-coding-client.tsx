@@ -134,7 +134,7 @@ const defineBlocks = () => {
       this.appendDummyInput()
         .appendField(
           new Blockly.FieldImage(
-            "https://cdn-icons-png.flaticon.com/512/716/716784.png",
+            "/blockly/media/upload-icon.svg",
             20,
             20,
             "*"
@@ -4552,15 +4552,16 @@ function createBlocklyBlock(workspace, row) {
 
     const workspace = Blockly.inject(blocklyDiv.current, {
       toolbox: toolboxXml,
+      media: '/blockly/media/',
       zoom: {
-        controls: true,
+        controls: false,
         wheel: true,
         startScale: 1.0,
         maxScale: 3,
         minScale: 0.3,
         scaleSpeed: 1.2
       },
-      trashcan: true,
+      trashcan: false,
       renderer: 'zelos',
       // Fixed block size configuration
       grid: {
@@ -4621,6 +4622,11 @@ function createBlocklyBlock(workspace, row) {
       
       .blocklyFlyout .blocklyText {
         font-size: 12pt !important;
+      }
+
+      /* Hide zoom + trashcan controls (Electron/offline-friendly UI) */
+      .blocklyZoom, .blocklyTrash {
+        display: none !important;
       }
     `;
     document.head.appendChild(style);
@@ -5386,7 +5392,7 @@ file_handle = None
       return;
     }
 
-    setOutput("Running...\n");
+    setOutput("Running...");
 const ws = workspaceRef.current;
 const usesTurtle = ws
   ? ws.getAllBlocks(false).some(b => b.type.startsWith("turtle_"))
@@ -5720,10 +5726,10 @@ plt = _FakePlt()
 
         try {
           new Function("__turtle", jsCode)(turtle);
-          setOutput((prev) => prev + "\nTurtle executed successfully!");
+          setOutput("Turtle executed successfully!");
         } catch (e) {
           console.error("Canvas turtle error", e);
-          setOutput((prev) => prev + "\nTurtle execution error");
+          setOutput("Turtle execution error");
         }
       });
 
@@ -5737,7 +5743,7 @@ plt = _FakePlt()
 
       myPromise.then(
         () => {
-          setOutput((prev) => prev + "\nCode executed successfully!");
+          setOutput("Code executed successfully!");
         },
         (err: any) => {
           let errorMessage = "Unknown execution error";
@@ -5747,7 +5753,7 @@ plt = _FakePlt()
             errorMessage += ": " + err.args.v.map((x: any) => x.v).join(", ");
           }
 
-          setOutput((prev) => prev + "\nError: " + errorMessage);
+          setOutput("Error: " + errorMessage);
         }
       );
     }

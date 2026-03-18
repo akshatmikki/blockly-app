@@ -132,9 +132,7 @@ async function createWindow() {
 
   const isDev = !app.isPackaged;
 
-  if (isDev) {
-    await mainWindow.loadURL("http://localhost:3000")
-  } else {
+  const loadStaticExport = async () => {
     const outDir = resolveOutDir()
     console.log("Serving static files from:", outDir)
     const { server, url } = await startStaticServer(outDir)
@@ -166,6 +164,20 @@ async function createWindow() {
     })
 
     await mainWindow.loadURL(url)
+  }
+
+  if (isDev) {
+    try {
+      await mainWindow.loadURL("http://localhost:3000")
+    } catch (error) {
+      console.warn(
+        "Dev server not reachable (http://localhost:3000). Falling back to static export.",
+        error?.message || error
+      )
+      await loadStaticExport()
+    }
+  } else {
+    await loadStaticExport()
   }
 }
 // ----------------------------

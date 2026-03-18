@@ -9,15 +9,14 @@ import Sk from 'skulpt';
 import 'skulpt/dist/skulpt-stdlib.js';
 import { useSearchParams } from "next/navigation"
 import { javascriptGenerator, Order } from "blockly/javascript";
-import Script from "next/script";
-import { Hands } from "@mediapipe/hands";
+import "@mediapipe/hands";
+import "@mediapipe/camera_utils";
+import "@mediapipe/drawing_utils";
 import * as faceapi from "face-api.js";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
 
-// TensorFlow and COCO-SSD are loaded via CDN Script tags (see bottom of file)
-// Access them via window.tf and window.cocoSsd
 declare global {
   interface Window {
     tf: any;
@@ -709,7 +708,7 @@ const defineBlocks = () => {
       this.appendDummyInput()
         .appendField(
           new Blockly.FieldImage(
-            "https://cdn-icons-png.flaticon.com/512/716/716784.png",
+            "/blockly/media/upload-icon.svg",
             20,
             20,
             "*"
@@ -5582,15 +5581,16 @@ function AICodingPage() {
 
     const workspace = Blockly.inject(blocklyDiv.current, {
       toolbox: toolboxXml,
+      media: '/blockly/media/',
       zoom: {
-        controls: true,
+        controls: false,
         wheel: false,
         startScale: 1.0,
         maxScale: 3,
         minScale: 0.3,
         scaleSpeed: 1.2
       },
-      trashcan: true,
+      trashcan: false,
       renderer: 'zelos',
       grid: {
         spacing: 20,
@@ -5653,6 +5653,11 @@ function AICodingPage() {
       
       .blocklyFlyout .blocklyText {
         font-size: 12pt !important;
+      }
+
+      /* Hide zoom + trashcan controls */
+      .blocklyZoom, .blocklyTrash {
+        display: none !important;
       }
     `;
     document.head.appendChild(style);
@@ -5962,23 +5967,6 @@ function AICodingPage() {
     };
   }, [toolboxXml]);
 
-  useEffect(() => {
-    const script1 = document.createElement("script");
-    script1.src = "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js";
-    script1.async = true;
-
-    const script2 = document.createElement("script");
-    script2.src = "https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js";
-    script2.async = true;
-
-    const script3 = document.createElement("script");
-    script3.src = "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js";
-    script3.async = true;
-
-    document.body.appendChild(script1);
-    document.body.appendChild(script2);
-    document.body.appendChild(script3);
-  }, []);
   async function showSpriteWithWebcam(spriteName) {
     if (!canvasContainerRef.current) return;
 
@@ -6843,7 +6831,7 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
                 }
 
                 if (!modelsLoaded) {
-                  outputCallback("âŒ Failed to load face detection models from all CDN sources. Please check your internet connection and try again.");
+                  outputCallback("Failed to load face detection models from the app. Ensure `/models` is packaged and accessible offline.");
                   facialDetections = [];
                   resolve();
                   return;
@@ -7144,7 +7132,7 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
         }
 
         if (!modelsLoaded) {
-          outputCallback("âŒ Failed to load face detection models. Please check your internet connection and try again.");
+          outputCallback("Failed to load face detection models from the app. Ensure `/models` is packaged and accessible offline.");
           return;
         }
       }
@@ -7200,7 +7188,7 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
   ) {
     if (isDetectionRunningRef.current) return;
 
-    if (!window.Hands || !window.Camera) {
+    if (!(window as any).Hands || !(window as any).Camera) {
       outputCallback("⏳ MediaPipe loading...");
       return;
     }
@@ -7210,6 +7198,12 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
       isDetectionRunningRef.current = true;
 
       // Ensure Blockly container allows overlay
+      if (!blocklyDivRef.current) {
+        outputCallback("Blockly container not ready.");
+        isDetectionRunningRef.current = false;
+        return;
+      }
+
       blocklyDivRef.current.style.position = "relative";
 
       // Create popup wrapper
@@ -7247,16 +7241,18 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
       blocklyDivRef.current.appendChild(wrapper);
 
       const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        outputCallback("Canvas context unavailable.");
+        isDetectionRunningRef.current = false;
+        return;
+      }
 
-      // Get camera stream
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
+      // Camera is initialized via @mediapipe/camera_utils below.
 
       // Create Hands instance once
       if (!handsRef.current) {
-        handsRef.current = new window.Hands({
-          locateFile: (file) =>
-            `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        handsRef.current = new (window as any).Hands({
+          locateFile: (file) => `/mediapipe/hands/${file}`,
         });
 
         handsRef.current.setOptions({
@@ -7274,14 +7270,14 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
 
         if (results.multiHandLandmarks) {
           for (const landmarks of results.multiHandLandmarks) {
-            window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS);
-            window.drawLandmarks(ctx, landmarks);
+            (window as any).drawConnectors(ctx, landmarks, (window as any).HAND_CONNECTIONS);
+            (window as any).drawLandmarks(ctx, landmarks);
           }
         }
       });
 
       // Start Camera
-      cameraRef.current = new window.Camera(video, {
+      cameraRef.current = new (window as any).Camera(video, {
         onFrame: async () => {
           if (handsRef.current) {
             await handsRef.current.send({ image: video });
@@ -8020,6 +8016,9 @@ file_handle = None
     commandQueue = [];
     isProcessingQueue = false;
     setOutput("Running...\n");
+
+    const stripRunningPrefix = (text: string) =>
+      (text || "").replace(/^Running\.\.\.\s*\n?/, "");
     const ws = workspaceRef.current;
     const usesTurtle = ws
       ? ws.getAllBlocks(false).some(b => b.type.startsWith("turtle_"))
@@ -9081,10 +9080,16 @@ plt = _FakePlt()
         const jsCode = javascriptGenerator.workspaceToCode(ws);
         try {
           new Function("__turtle", jsCode)(turtle);
-          setOutput((prev) => prev + "\nTurtle executed successfully!");
+          setOutput((prev) => {
+            const cleaned = stripRunningPrefix(prev).replace(/\s*$/, "");
+            return (cleaned ? cleaned + "\n" : "") + "Turtle executed successfully!";
+          });
         } catch (e) {
           console.error("Canvas turtle error", e);
-          setOutput((prev) => prev + "\nTurtle execution error");
+          setOutput((prev) => {
+            const cleaned = stripRunningPrefix(prev).replace(/\s*$/, "");
+            return (cleaned ? cleaned + "\n" : "") + "Turtle execution error";
+          });
         }
       });
       return; // ⛔ DO NOT FALL THROUGH TO SKULPT
@@ -9101,7 +9106,10 @@ plt = _FakePlt()
       myPromise.then(
         () => {
           console.log("[App] Code executed successfully!");
-          setOutput((prev) => prev + "\nCode executed successfully!");
+          setOutput((prev) => {
+            const cleaned = stripRunningPrefix(prev).replace(/\s*$/, "");
+            return (cleaned ? cleaned + "\n" : "") + "Code executed successfully!";
+          });
         },
         (err: any) => {
           let errorMessage = "Unknown execution error";
@@ -9109,7 +9117,10 @@ plt = _FakePlt()
           if (err?.args?.v?.length) {
             errorMessage += ": " + err.args.v.map((x: any) => x.v).join(", ");
           }
-          setOutput((prev) => prev + "\nError: " + errorMessage);
+          setOutput((prev) => {
+            const cleaned = stripRunningPrefix(prev).replace(/\s*$/, "");
+            return (cleaned ? cleaned + "\n" : "") + "Error: " + errorMessage;
+          });
           (err) => {
             console.error("[App] Execution error:", err);
             setOutput((prev) => prev + "\nError: " + err.toString());
@@ -9288,36 +9299,6 @@ plt = _FakePlt()
           </div>
         </div>
       )}
-
-      <Script
-        src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"
-        strategy="beforeInteractive"
-      />
-
-      <Script
-        src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
-        strategy="afterInteractive"
-      />
-
-      <Script
-        src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
-        strategy="afterInteractive"
-      />
-
-      <Script
-        src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@latest"
-        strategy="beforeInteractive"
-      />
-
-      <Script
-        src="https://docs.opencv.org/4.x/opencv.js"
-        strategy="afterInteractive"
-      />
-
-      <Script
-        src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
-        strategy="beforeInteractive"
-      />
 
       <input
         type="file"
