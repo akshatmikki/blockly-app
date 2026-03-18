@@ -4687,8 +4687,47 @@ function createBlocklyBlock(workspace, row) {
     
     const isFieldEditorOpen = () => Boolean((Blockly as any).WidgetDiv?.isVisible?.());
 
+    const lockToolboxAndFlyoutScale = () => {
+      const wsAny = workspace as any;
+
+      const toolbox =
+        wsAny.getToolbox?.() ??
+        wsAny.toolbox_ ??
+        null;
+
+      if (toolbox && typeof toolbox.setScale === 'function' && !toolbox.__fixedScalePatched) {
+        const original = toolbox.setScale.bind(toolbox);
+        toolbox.setScale = (_scale: number) => original(1);
+        toolbox.__fixedScalePatched = true;
+      }
+
+      const flyout =
+        wsAny.getFlyout?.() ??
+        toolbox?.getFlyout?.() ??
+        toolbox?.flyout_ ??
+        null;
+
+      if (flyout && typeof flyout.setScale === 'function' && !flyout.__fixedScalePatched) {
+        const original = flyout.setScale.bind(flyout);
+        flyout.setScale = (_scale: number) => original(1);
+        flyout.__fixedScalePatched = true;
+      }
+
+      const flyoutWorkspace =
+        flyout?.getWorkspace?.() ??
+        flyout?.workspace_ ??
+        null;
+
+      if (flyoutWorkspace && typeof flyoutWorkspace.setScale === 'function' && !flyoutWorkspace.__fixedScalePatched) {
+        const original = flyoutWorkspace.setScale.bind(flyoutWorkspace);
+        flyoutWorkspace.setScale = (_scale: number) => original(1);
+        flyoutWorkspace.__fixedScalePatched = true;
+      }
+    };
+
     const lockFlyoutScale = () => {
       if (isFieldEditorOpen()) return;
+      lockToolboxAndFlyoutScale();
       const flyout = (workspace as any).getFlyout?.();
       const flyoutWorkspace = flyout?.getWorkspace?.();
       if (!flyoutWorkspace) return;
@@ -4828,6 +4867,7 @@ function createBlocklyBlock(workspace, row) {
       preventToolboxScroll();
       attachFlyoutObserver();
       updateFlyoutScrollbars();
+      lockToolboxAndFlyoutScale();
       lockFlyoutScale(); // Initial enforcement
     }, 100);
 
