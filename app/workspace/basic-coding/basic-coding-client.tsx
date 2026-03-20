@@ -4463,7 +4463,7 @@ function createBlocklyBlock(workspace, row) {
       toolbox: toolboxXml,
       zoom: {
         controls: true,
-        wheel: true,
+        wheel: false,
         startScale: 1.0,
         maxScale: 3,
         minScale: 0.3,
@@ -4497,6 +4497,16 @@ function createBlocklyBlock(workspace, row) {
       /* Ensure consistent block rendering */
       .blocklyBlockCanvas {
         transform-origin: 0 0;
+      }
+      /* Fix toolbox and flyout block cropping */
+      .blocklyToolboxDiv {
+        min-width: 250px !important;
+      }
+      .blocklyFlyout {
+        min-width: 320px !important;
+      }
+      .blocklyFlyoutBackground {
+        width: 100% !important;
       }
       /* Fix scrollbar persistence when flyout closes */
       .blocklyFlyout.blocklyHidden ~ .blocklyFlyoutScrollbar {
@@ -4554,6 +4564,16 @@ function createBlocklyBlock(workspace, row) {
 
       ws.createVariable(name);
     };
+
+    // Override the native window.prompt for variable renaming
+    Blockly.dialog.setPrompt(function(message, defaultValue, callback) {
+      if (message.includes('New variable name')) {
+         defaultValue = ''; 
+      }
+      askVariableName(defaultValue || 'myVar').then(name => {
+        callback(name);
+      });
+    });
     // ───────────────────────────────────────────────────────────────────────
     
     const isFieldEditorOpen = () => Boolean((Blockly as any).WidgetDiv?.isVisible?.());

@@ -5479,6 +5479,16 @@ function AICodingPage() {
       .blocklyBlockCanvas {
         transform-origin: 0 0;
       }
+      /* Fix toolbox and flyout block cropping */
+      .blocklyToolboxDiv {
+        min-width: 250px !important;
+      }
+      .blocklyFlyout {
+        min-width: 320px !important;
+      }
+      .blocklyFlyoutBackground {
+        width: 100% !important;
+      }
       /* Fix scrollbar persistence when flyout closes */
       .blocklyFlyout.blocklyHidden ~ .blocklyFlyoutScrollbar {
         display: none !important;
@@ -5520,6 +5530,69 @@ function AICodingPage() {
 
     workspaceRef.current = workspace;
     setWorkspaceReady(true);
+
+    // Override the native window.prompt for variable creation and renaming via DOM overlay
+    Blockly.dialog.setPrompt(function(message, defaultValue, callback) {
+      if (message.includes('New variable name')) {
+         defaultValue = ''; 
+      }
+      const overlay = document.createElement('div');
+      Object.assign(overlay.style, {
+        position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+        background: 'rgba(0,0,0,0.5)', zIndex: '99999', display: 'flex',
+        alignItems: 'center', justifyContent: 'center'
+      });
+      
+      const dialog = document.createElement('div');
+      Object.assign(dialog.style, {
+        background: 'hsl(var(--background))', color: 'hsl(var(--foreground))',
+        padding: '24px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+        minWidth: '320px', fontFamily: 'sans-serif', border: '1px solid hsl(var(--border))'
+      });
+      
+      const label = document.createElement('h3');
+      label.textContent = message || 'Enter variable name:';
+      Object.assign(label.style, { margin: '0 0 16px', fontSize: '1.2rem', fontWeight: 'bold' });
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = defaultValue || 'myVar';
+      Object.assign(input.style, {
+        width: '100%', padding: '10px', marginBottom: '20px', 
+        border: '1px solid hsl(var(--input))', borderRadius: '6px',
+        background: 'hsl(var(--background))', color: 'hsl(var(--foreground))'
+      });
+      
+      const btnRow = document.createElement('div');
+      Object.assign(btnRow.style, { display: 'flex', justifyContent: 'flex-end', gap: '12px' });
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      Object.assign(cancelBtn.style, {
+        padding: '8px 16px', border: '1px solid hsl(var(--border))', 
+        background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'hsl(var(--foreground))'
+      });
+      cancelBtn.onclick = () => { document.body.removeChild(overlay); callback(null); };
+      
+      const okBtn = document.createElement('button');
+      okBtn.textContent = 'OK';
+      Object.assign(okBtn.style, {
+        padding: '8px 16px', border: 'none', background: 'hsl(var(--primary))', 
+        color: 'hsl(var(--primary-foreground))', borderRadius: '6px', cursor: 'pointer'
+      });
+      okBtn.onclick = () => { document.body.removeChild(overlay); callback(input.value); };
+      
+      btnRow.appendChild(cancelBtn);
+      btnRow.appendChild(okBtn);
+      dialog.appendChild(label);
+      dialog.appendChild(input);
+      dialog.appendChild(btnRow);
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      
+      input.focus();
+      input.select();
+    });
 
     // Listen for zoom changes
     const ws = workspace as Blockly.WorkspaceSvg;
