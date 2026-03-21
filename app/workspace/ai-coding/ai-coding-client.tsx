@@ -10,7 +10,8 @@ import 'skulpt/dist/skulpt-stdlib.js';
 import { useSearchParams } from "next/navigation"
 import { javascriptGenerator, Order } from "blockly/javascript";
 import Script from "next/script";
-import { Hands } from "@mediapipe/hands";
+// Removed static import for Hands to avoid conflict with localized global window.Hands
+
 import * as faceapi from "face-api.js";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
@@ -4714,7 +4715,7 @@ function AICodingPage() {
           return;
         }
 
-        debugLog("🔧 Initializing TensorFlow.js from CDN...");
+        debugLog("🔧 Initializing TensorFlow.js...");
 
         const tf = window.tf;
         await tf.ready();
@@ -6996,7 +6997,16 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
     if (isDetectionRunningRef.current) return;
 
     if (!window.Hands || !window.Camera) {
-      outputCallback("⏳ MediaPipe loading...");
+      outputCallback("⏳ Waiting for MediaPipe...");
+      let attempts = 0;
+      while ((!window.Hands || !window.Camera) && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        attempts++;
+      }
+    }
+
+    if (!window.Hands || !window.Camera) {
+      outputCallback("❌ MediaPipe failed to load. Please refresh.");
       return;
     }
 
