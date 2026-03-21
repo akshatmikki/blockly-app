@@ -5857,6 +5857,27 @@ plt = _FakePlt()
           overflow: "hidden"
         }}
       >
+        {/* Top Menu Bar */}
+        <div
+          style={{
+            height: "28px",
+            background: "#2e2e2e",
+            color: "#ccc",
+            display: "flex",
+            alignItems: "center",
+            padding: "0 15px",
+            fontSize: "12px",
+            gap: "18px",
+            borderBottom: "1px solid #1a1a1a"
+          }}
+        >
+          {["File", "Edit", "View", "Window", "Help"].map((menu) => (
+            <span key={menu} style={{ cursor: "default" }}>
+              {menu}
+            </span>
+          ))}
+        </div>
+
         {/* Header */}
         <div
           style={{
@@ -5868,9 +5889,7 @@ plt = _FakePlt()
             gap: "10px"
           }}
         >
-          <button style={{ padding: "8px 16px", background: "#fff", border: "none", borderRadius: "4px", fontWeight: "bold" }}>
-            ☰
-          </button>
+
 
           <button onClick={resetWorkspace} style={{ padding: "8px 16px", background: "#fff", border: "none", borderRadius: "4px" }}>
             🔄 Reset

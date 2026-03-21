@@ -54,7 +54,7 @@ export default function BackButton() {
     <button
       type="button"
       onClick={handleBack}
-      className="fixed left-4 top-4 z-40 inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-4 text-sm font-medium text-gray-800 shadow-lg backdrop-blur-sm transition hover:bg-white"
+      className="fixed left-4 top-10 z-40 inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-4 text-sm font-medium text-gray-800 shadow-lg backdrop-blur-sm transition hover:bg-white"
       aria-label="Go back"
     >
       <ArrowLeft className="h-4 w-4" />
