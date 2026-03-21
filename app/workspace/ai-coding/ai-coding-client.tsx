@@ -7000,10 +7000,10 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
       return;
     }
 
+    let attempts = 0;
     if (!window.Hands || !window.Camera) {
       console.log("[MediaPipe] Objects missing, waiting...", { Hands: !!window.Hands, Camera: !!window.Camera });
       outputCallback("⏳ Waiting for MediaPipe...");
-      let attempts = 0;
       while ((!window.Hands || !window.Camera) && attempts < 100) {
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
@@ -7066,6 +7066,7 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
       video.srcObject = stream;
 
       // Create Hands instance once
+      if (!handsRef.current) {
         console.log("[MediaPipe] Creating new Hands instance");
         handsRef.current = new window.Hands({
           locateFile: (file) => {
@@ -7081,6 +7082,7 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
           minDetectionConfidence: 0.7,
           minTrackingConfidence: 0.6
         });
+      }
 
       handsRef.current.onResults((results) => {
         fingerResultsRef.current = results;
@@ -8960,14 +8962,6 @@ plt = _FakePlt()
 
       <Script
         src="/js/hands.js"
-        strategy="afterInteractive"
-      />
-      <Script
-        src="/js/hands_solution_packed_assets_loader.js"
-        strategy="afterInteractive"
-      />
-      <Script
-        src="/js/hands_solution_simd_wasm_bin.js"
         strategy="afterInteractive"
       />
 
