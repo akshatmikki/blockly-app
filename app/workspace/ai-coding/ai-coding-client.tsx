@@ -5767,22 +5767,10 @@ function AICodingPage() {
     };
   }, [toolboxXml]);
 
+  // Scripts are already loaded via Next.js <Script> tags
+  // Keeping this block as an empty useEffect if needed for other initialization
   useEffect(() => {
-    const script1 = document.createElement("script");
-    script1.src = "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js";
-    script1.async = true;
-
-    const script2 = document.createElement("script");
-    script2.src = "https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js";
-    script2.async = true;
-
-    const script3 = document.createElement("script");
-    script3.src = "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js";
-    script3.async = true;
-
-    document.body.appendChild(script1);
-    document.body.appendChild(script2);
-    document.body.appendChild(script3);
+    // MediaPipe scripts moved to localized /js/ directory and loaded via <Script> components
   }, []);
   async function showSpriteWithWebcam(spriteName) {
     if (!canvasContainerRef.current) return;
@@ -7063,7 +7051,7 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
       if (!handsRef.current) {
         handsRef.current = new window.Hands({
           locateFile: (file) =>
-            `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            `/js/${file}`
         });
 
         handsRef.current.setOptions({
