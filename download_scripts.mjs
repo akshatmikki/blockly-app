@@ -11,7 +11,9 @@ const scripts = [
   { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands_solution_simd_wasm_bin.js", file: "hands_solution_simd_wasm_bin.js" },
   { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.binarypb", file: "hands.binarypb" },
   { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands_solution_packed_assets.data", file: "hands_solution_packed_assets.data" },
-  { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands_solution_simd_wasm_bin.wasm", file: "hands_solution_simd_wasm_bin.wasm" }
+  { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands_solution_simd_wasm_bin.wasm", file: "hands_solution_simd_wasm_bin.wasm" },
+  { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hand_landmark_full.tflite", file: "hand_landmark_full.tflite" },
+  { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hand_landmark_lite.tflite", file: "hand_landmark_lite.tflite" }
 ];
 
 const dir = path.join(process.cwd(), 'public', 'js');
@@ -26,7 +28,21 @@ async function download() {
       const res = await fetch(url, { redirect: 'follow' });
       if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
       
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('text/html')) {
+        throw new Error(`Received HTML instead of binary file. Check for redirects or bot protection.`);
+      }
+
       const buffer = await res.arrayBuffer();
+      
+      // Basic check for TFLite models: they should start with 'TFL3'
+      if (file.endsWith('.tflite')) {
+        const header = Buffer.from(buffer.slice(0, 4)).toString();
+        if (header !== 'TFL3') {
+          throw new Error(`Invalid TFLite header: expected TFL3, got ${header}`);
+        }
+      }
+
       fs.writeFileSync(dest, Buffer.from(buffer));
       console.log(`✅ Saved ${file} (${buffer.byteLength} bytes)`);
     } catch (err) {

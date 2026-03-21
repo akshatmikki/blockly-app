@@ -8050,7 +8050,7 @@ file_handle = None
         return;
       }
       if (cleanText === "__FINGER_STOP__") {
-        stopFingerDetection((msg) =>
+        stopFingerDetection(canvasContainerRef, (msg) =>
           setOutput(prev => prev + "\n" + msg)
         );
         return;
