@@ -7001,18 +7001,29 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
     }
 
     let attempts = 0;
-    if (!window.Hands || !window.Camera) {
-      console.log("[MediaPipe] Objects missing, waiting...", { Hands: !!window.Hands, Camera: !!window.Camera });
+    if (!window.Hands || (!window.Camera && !window.CameraUtils && !window.mediaPipe?.Camera)) {
+      console.log("[MediaPipe] Objects missing, waiting...", { 
+        Hands: !!window.Hands, 
+        Camera: !!window.Camera, 
+        CameraUtils: !!window.CameraUtils,
+        mediaPipeCamera: !!window.mediaPipe?.Camera
+      });
       outputCallback("⏳ Waiting for MediaPipe...");
-      while ((!window.Hands || !window.Camera) && attempts < 100) {
+      while ((!window.Hands || (!window.Camera && !window.CameraUtils && !window.mediaPipe?.Camera)) && attempts < 100) {
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
       }
     }
 
-    console.log("[MediaPipe] Readiness check results:", { Hands: !!window.Hands, Camera: !!window.Camera, attempts });
+    const cameraClass = window.Camera || window.CameraUtils || window.mediaPipe?.Camera;
 
-    if (!window.Hands || !window.Camera) {
+    console.log("[MediaPipe] Readiness check results:", { 
+      Hands: !!window.Hands, 
+      CameraClass: !!cameraClass,
+      attempts 
+    });
+
+    if (!window.Hands || !cameraClass) {
       console.error("[MediaPipe] Failed to load global objects");
       outputCallback("❌ MediaPipe failed to load. Please refresh.");
       return;
@@ -7098,7 +7109,7 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
       });
 
       // Start Camera
-      cameraRef.current = new window.Camera(video, {
+      cameraRef.current = new cameraClass(video, {
         onFrame: async () => {
           if (handsRef.current) {
             await handsRef.current.send({ image: video });
@@ -8972,7 +8983,7 @@ plt = _FakePlt()
 
       <Script
         src="/js/camera_utils.js"
-        strategy="beforeInteractive"
+        strategy="afterInteractive"
       />
 
       <Script
