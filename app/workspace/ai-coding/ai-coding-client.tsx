@@ -8056,47 +8056,35 @@ file_handle = None
         return;
       }
       if (cleanText.startsWith("__FINGER_DELAY__:")) {
-        fingerDelayRef.current =
-          parseFloat(cleanText.split(":")[1]) || 1;
+        const delay = parseFloat(cleanText.split(":")[1]) || 1;
+        console.log(`[MediaPipe] Delaying execution for ${delay}s`);
+        await new Promise(resolve => setTimeout(resolve, delay * 1000));
         return;
       }
       if (cleanText === "__FINGER_GET_COUNT__") {
-
-        if (fingerIntervalRef.current) {
-          clearInterval(fingerIntervalRef.current);
-        }
-
-        fingerIntervalRef.current = setInterval(() => {
-
-          const results = fingerResultsRef.current;
-          if (!results || !results.multiHandLandmarks) return;
-
+        const results = fingerResultsRef.current;
+        let count = 0;
+        
+        if (results && results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
           const landmarks = results.multiHandLandmarks[0];
-          let count = 0;
-
+          // Simple finger counting logic
           if (landmarks[4].x < landmarks[3].x) count++;
           if (landmarks[8].y < landmarks[6].y) count++;
           if (landmarks[12].y < landmarks[10].y) count++;
           if (landmarks[16].y < landmarks[14].y) count++;
           if (landmarks[20].y < landmarks[18].y) count++;
+        }
 
-          setOutput(prev => prev + `\nFinger count: ${count}`);
+        console.log(`[MediaPipe] Reporting count: ${count}`);
+        setOutput(prev => prev + `\nFinger count: ${count}`);
 
-          if (canvasContainerRef?.current) {
-            canvasContainerRef.current.innerHTML = `
-        <div style="
-          font-size:28px;
-          font-weight:bold;
-          text-align:center;
-          color:#5566AA;
-        ">
-          ✋ Finger Count: ${count}
-        </div>
-      `;
-          }
-
-        }, fingerDelayRef.current * 1000);
-
+        if (canvasContainerRef?.current) {
+          canvasContainerRef.current.innerHTML = `
+            <div style="font-size:24px; font-weight:bold; text-align:center; color:#5566AA; padding:10px; background:rgba(255,255,255,0.8); border-radius:8px;">
+              ✋ Count: ${count}
+            </div>
+          `;
+        }
         return;
       }
 
