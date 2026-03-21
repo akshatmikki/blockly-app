@@ -1,5 +1,4 @@
 import fs from 'fs';
-import https from 'https';
 import path from 'path';
 
 const scripts = [
@@ -17,21 +16,35 @@ if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 async function download() {
   for (const { url, file } of scripts) {
     const dest = path.join(dir, file);
-    console.log(`Downloading ${url} to ${dest}`);
-    await new Promise((resolve, reject) => {
-      const fileStream = fs.createWriteStream(dest);
-      https.get(url, response => {
-        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-          https.get(response.headers.location, res2 => {
-            res2.pipe(fileStream);
-            fileStream.on('finish', () => { fileStream.close(); resolve(); });
-          }).on('error', reject);
-        } else {
-          response.pipe(fileStream);
-          fileStream.on('finish', () => { fileStream.close(); resolve(); });
-        }
-      }).on('error', reject);
-    });
+    console.log(`Downloading ${url} to ${dest}...`);
+    
+    try {
+      const res = await fetch(url, { redirect: 'follow' });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      
+      const buffer = await res.arrayBuffer();
+      fs.writeFileSync(dest, Buffer.from(buffer));
+      console.log(`✅ Saved ${file} (${buffer.byteLength} bytes)`);
+    } catch (err) {
+      console.error(`❌ Failed to fetch ${url}:`, err.message);
+    }
+  }
+
+  // Copy Blockly media
+  const blocklyMediaDir = path.join(process.cwd(), 'node_modules', 'blockly', 'media');
+  const targetMediaDir = path.join(process.cwd(), 'public', 'media');
+  if (!fs.existsSync(targetMediaDir)) fs.mkdirSync(targetMediaDir, { recursive: true });
+  
+  if (fs.existsSync(blocklyMediaDir)) {
+    const files = fs.readdirSync(blocklyMediaDir);
+    for (const f of files) {
+      if (fs.statSync(path.join(blocklyMediaDir, f)).isFile()) {
+        fs.copyFileSync(path.join(blocklyMediaDir, f), path.join(targetMediaDir, f));
+      }
+    }
+    console.log("✅ Copied Blockly media to public/media/");
+  } else {
+    console.log("⚠️ Could not find blockly/media inside node_modules.");
   }
 }
 

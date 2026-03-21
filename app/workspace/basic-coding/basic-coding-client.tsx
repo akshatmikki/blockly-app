@@ -4460,6 +4460,7 @@ function createBlocklyBlock(workspace, row) {
     defineJavascriptGenerators();
 
     const workspace = Blockly.inject(blocklyDiv.current, {
+      media: '/media/',
       toolbox: toolboxXml,
       zoom: {
         controls: true,
