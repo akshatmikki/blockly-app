@@ -8949,32 +8949,32 @@ plt = _FakePlt()
     <>
 
       <Script
-        src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"
+        src="/js/teachablemachine-image.min.js"
         strategy="beforeInteractive"
       />
 
       <Script
-        src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
+        src="/js/hands.js"
         strategy="afterInteractive"
       />
 
       <Script
-        src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        src="/js/drawing_utils.js"
         strategy="afterInteractive"
       />
 
       <Script
-        src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@latest"
+        src="/js/camera_utils.js"
         strategy="beforeInteractive"
       />
 
       <Script
-        src="https://docs.opencv.org/4.x/opencv.js"
+        src="/js/opencv.js"
         strategy="afterInteractive"
       />
 
       <Script
-        src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
+        src="/js/face-api.min.js"
         strategy="beforeInteractive"
       />
 

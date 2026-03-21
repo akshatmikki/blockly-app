@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "node download_scripts.mjs && next build",
     "dev": "cross-env NEXT_DISABLE_TURBOPACK=1 next dev",
     "start": "next start",
     "electron": "electron .",
