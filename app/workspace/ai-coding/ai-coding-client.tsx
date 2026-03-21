@@ -6994,18 +6994,26 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
     canvasContainerRef,
     outputCallback
   ) {
-    if (isDetectionRunningRef.current) return;
+    console.log("[MediaPipe] startFingerDetection called");
+    if (isDetectionRunningRef.current) {
+      console.log("[MediaPipe] Detection already running");
+      return;
+    }
 
     if (!window.Hands || !window.Camera) {
+      console.log("[MediaPipe] Objects missing, waiting...", { Hands: !!window.Hands, Camera: !!window.Camera });
       outputCallback("⏳ Waiting for MediaPipe...");
       let attempts = 0;
-      while ((!window.Hands || !window.Camera) && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+      while ((!window.Hands || !window.Camera) && attempts < 100) {
+        await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
       }
     }
 
+    console.log("[MediaPipe] Readiness check results:", { Hands: !!window.Hands, Camera: !!window.Camera, attempts });
+
     if (!window.Hands || !window.Camera) {
+      console.error("[MediaPipe] Failed to load global objects");
       outputCallback("❌ MediaPipe failed to load. Please refresh.");
       return;
     }
@@ -7058,10 +7066,13 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
       video.srcObject = stream;
 
       // Create Hands instance once
-      if (!handsRef.current) {
+        console.log("[MediaPipe] Creating new Hands instance");
         handsRef.current = new window.Hands({
-          locateFile: (file) =>
-            `/js/${file}`
+          locateFile: (file) => {
+            const path = `${window.location.origin}/js/${file}`;
+            console.log(`[MediaPipe] Internal fetch: ${file} -> ${path}`);
+            return path;
+          }
         });
 
         handsRef.current.setOptions({
@@ -7070,7 +7081,6 @@ ${currentPrediction} (${(currentConfidence * 100).toFixed(1)}%)
           minDetectionConfidence: 0.7,
           minTrackingConfidence: 0.6
         });
-      }
 
       handsRef.current.onResults((results) => {
         fingerResultsRef.current = results;
@@ -8950,6 +8960,14 @@ plt = _FakePlt()
 
       <Script
         src="/js/hands.js"
+        strategy="afterInteractive"
+      />
+      <Script
+        src="/js/hands_solution_packed_assets_loader.js"
+        strategy="afterInteractive"
+      />
+      <Script
+        src="/js/hands_solution_simd_wasm_bin.js"
         strategy="afterInteractive"
       />
 

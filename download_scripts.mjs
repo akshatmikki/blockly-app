@@ -6,7 +6,7 @@ const scripts = [
   { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js", file: "hands.js" },
   { url: "https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js", file: "drawing_utils.js" },
   { url: "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js", file: "camera_utils.js" },
-  { url: "https://docs.opencv.org/4.x/opencv.js", file: "opencv.js" },
+  { url: "https://unpkg.com/@techstark/opencv-js@4.9.0-release.3/dist/opencv.js", file: "opencv.js" },
   { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands_solution_packed_assets_loader.js", file: "hands_solution_packed_assets_loader.js" },
   { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands_solution_simd_wasm_bin.js", file: "hands_solution_simd_wasm_bin.js" },
   { url: "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.binarypb", file: "hands.binarypb" },
