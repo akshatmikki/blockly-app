@@ -5818,7 +5818,33 @@ plt = _FakePlt()
         type="file"
         ref={fileInputRef}
         style={{ display: "none" }}
-        onChange={handleFileUpload}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+
+          const text = await file.text();
+
+          // Populate Skulpt builtin files directly
+          if (!window.Sk.builtinFiles) {
+            window.Sk.builtinFiles = { files: {} };
+          }
+          window.Sk.builtinFiles["files"][file.name] = text;
+          
+          window.__fileUploaded = true;
+
+          // 🔥 AUTO-FILL filename into Blockly block
+          const ws = workspaceRef.current;
+          if (ws) {
+            const blocks = ws.getAllBlocks(false);
+            const openBlock = blocks.find(b => b.type === "file_open");
+            if (openBlock) {
+              openBlock.setFieldValue(file.name, "FILENAME");
+            }
+          }
+
+          alert(`File "${file.name}" uploaded successfully`);
+          runCode();
+        }}
       />
       <div
         style={{

@@ -4706,15 +4706,11 @@ function AICodingPage() {
           }
         };
 
-        // Wait for CDN script to load
-        let attempts = 0;
-        while (!window.tf && attempts < 50) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          attempts++;
-        }
+        // Load the local bundled package
+        await loadTF();
 
-        if (!window.tf) {
-          debugLog("❌ TensorFlow.js CDN script failed to load");
+        if (!(window as any).tf) {
+          debugLog("❌ TensorFlow.js failed to load");
           return;
         }
 
@@ -8033,7 +8029,7 @@ file_handle = None
       }
       if (cleanText === "__FINGER_STOP__") {
         stopFingerDetection((msg) =>
-          setOutput(prev => prev + "\n" + msg), outputCallback
+          setOutput(prev => prev + "\n" + msg)
         );
         return;
       }
@@ -8988,8 +8984,12 @@ plt = _FakePlt()
 
           const text = await file.text();
 
-          window.__uploadedFiles = window.__uploadedFiles || {};
-          window.__uploadedFiles[file.name] = text;
+          // Populate Skulpt builtin files directly
+          if (!window.Sk.builtinFiles) {
+            window.Sk.builtinFiles = { files: {} };
+          }
+          window.Sk.builtinFiles["files"][file.name] = text;
+          
           window.__fileUploaded = true;
 
           // 🔥 AUTO-FILL filename into Blockly block
@@ -9002,15 +9002,9 @@ plt = _FakePlt()
             }
           }
 
+          alert(`File "${file.name}" uploaded successfully`);
           runCode();
         }}
-      />
-
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: "none" }}
-        onChange={handleFileUpload}
       />
       <div
         style={{

@@ -124,8 +124,9 @@
 .blocklyToolboxDiv {
   background: var(--sidebar);
   border-right: 1px solid var(--sidebar-border);
-  width: 220px;
-  overflow: hidden;
+  width: 220px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 /* Toolbox rows */
