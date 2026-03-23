@@ -86,9 +86,14 @@ export default function DashboardPage() {
   }
 };
   const handleBackFromCreate = () => {
-    setShowModal(false);
-    setProjectName("");
-    setIsCreatingNewProject(false);
+    if (projects.length > 0) {
+      setIsCreatingNewProject(false);
+      setProjectName("");
+    } else {
+      setShowModal(false);
+      setProjectName("");
+      setIsCreatingNewProject(false);
+    }
   };
 
  const loadTutorialCounts = async () => {
@@ -139,6 +144,7 @@ export default function DashboardPage() {
     }
 
     // ✅ success
+    await loadProjects(); // Refresh projects so the back-navigation cache has the latest
     setShowModal(false);
     setProjectName("");
     setIsCreatingNewProject(false);
@@ -218,7 +224,7 @@ export default function DashboardPage() {
                 className="mt-6 bg-white text-black hover:bg-gray-100 w-full"
                 onClick={() => {
                   setSelectedModule(module);
-                  setIsCreatingNewProject(true);
+                  setIsCreatingNewProject(projects.length === 0);
                   setShowModal(true);
                 }}
               >
@@ -271,11 +277,11 @@ export default function DashboardPage() {
               <>
                 {projects.map((p) => (
                   <div
-                    key={p.ProjectId}
+                    key={p.projectid ?? p.ProjectId}
                     className="border rounded p-3 mb-2 cursor-pointer hover:bg-gray-50"
-                    onClick={() => openProject(p.ProjectId)}
+                    onClick={() => openProject(p.projectid ?? p.ProjectId)}
                   >
-                    {p.projectname}
+                    {p.projectname ?? p.ProjectName}
                   </div>
                 ))}
                 <Button

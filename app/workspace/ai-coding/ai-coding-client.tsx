@@ -3168,7 +3168,7 @@ const definePythonGenerators = () => {
   };
 
   pythonGenerator.forBlock['cv_put_text'] = function (block) {
-    const text = block.getFieldValue("TEXT") || "Hello";
+    const text = block.getFieldValue("TEXT") || "";
     const x = block.getFieldValue("X");
     const y = block.getFieldValue("Y");
     const font = block.getFieldValue("FONT");
@@ -7826,7 +7826,22 @@ file_handle = None
     const usesMatplotlib = /\bplt\./.test(code);
     const usesPygal = /\bpygal\b/.test(code);
     // Clear previous canvas
-    canvasContainerRef.current.innerHTML = "";
+    if (canvasContainerRef.current) {
+      canvasContainerRef.current.innerHTML = "";
+    }
+    
+    // Reset OpenCV cvMat from cvImage to avoid retaining drawings from previous runs
+    if (typeof cvImage !== "undefined" && cvImage !== null && typeof window.cv !== "undefined") {
+      try {
+        if (typeof cvMat !== "undefined" && cvMat !== null) {
+          cvMat.delete();
+        }
+        cvMat = window.cv.imread(cvImage);
+      } catch (err) {
+        console.error("Failed to reset cvMat from cvImage:", err);
+      }
+    }
+    
     if (usesTurtle) {
       const canvas = document.createElement("canvas");
       canvas.id = "turtleCanvas";
