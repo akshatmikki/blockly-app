@@ -2427,7 +2427,9 @@ const definePythonGenerators = () => {
     generator.definitions_['file_runtime'] =
       `from io import StringIO
 def open_uploaded(filename, mode="r"):
-print("DEBUG FILES:", list(__uploaded_files.keys()))
+    if "__uploaded_files" not in globals():
+        global __uploaded_files
+        __uploaded_files = {}
     if filename not in __uploaded_files:
         raise FileNotFoundError(filename)
     return StringIO(__uploaded_files[filename])
@@ -5187,6 +5189,9 @@ from io import StringIO
 __uploaded_files = ${files}
 
 def open_uploaded(filename, mode="r"):
+    if "__uploaded_files" not in globals():
+        global __uploaded_files
+        __uploaded_files = {}
     if filename not in __uploaded_files:
         raise FileNotFoundError(filename)
     return StringIO(__uploaded_files[filename])
@@ -5700,6 +5705,10 @@ plt = _FakePlt()
 
           window.__uploadedFiles = window.__uploadedFiles || {};
           window.__uploadedFiles[file.name] = text;
+          
+          if (!Sk.builtinFiles) Sk.builtinFiles = { files: {} };
+          Sk.builtinFiles["files"][file.name] = text;
+
           window.__fileUploaded = true;
 
           // 🔥 AUTO-FILL filename into Blockly block
@@ -5836,10 +5845,11 @@ plt = _FakePlt()
           const text = await file.text();
 
           // Populate Skulpt builtin files directly
-          if (!window.Sk.builtinFiles) {
-            window.Sk.builtinFiles = { files: {} };
-          }
-          window.Sk.builtinFiles["files"][file.name] = text;
+          if (!Sk.builtinFiles) Sk.builtinFiles = { files: {} };
+          Sk.builtinFiles["files"][file.name] = text;
+          
+          window.__uploadedFiles = window.__uploadedFiles || {};
+          window.__uploadedFiles[file.name] = text;
           
           window.__fileUploaded = true;
 
