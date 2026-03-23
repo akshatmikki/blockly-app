@@ -5446,7 +5446,7 @@ function AICodingPage() {
         wheel: false,
         startScale: 1.0,
         maxScale: 3,
-        minScale: 0.3,
+        minScale: 1.0,
         scaleSpeed: 1.2
       },
       trashcan: true,
@@ -5458,6 +5458,12 @@ function AICodingPage() {
         snap: false
       }
     });
+
+    const onResize = () => {
+      Blockly.svgResize(workspace);
+    };
+    window.addEventListener('resize', onResize);
+    onResize();
 
     // Apply fixed block sizes via CSS
     const style = document.createElement('style');

@@ -224,7 +224,7 @@ export default function DashboardPage() {
                 className="mt-6 bg-white text-black hover:bg-gray-100 w-full"
                 onClick={() => {
                   setSelectedModule(module);
-                  setIsCreatingNewProject(projects.length === 0);
+                  setIsCreatingNewProject(true);
                   setShowModal(true);
                 }}
               >
