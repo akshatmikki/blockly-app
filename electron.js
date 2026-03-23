@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron")
+const { app, BrowserWindow, ipcMain, Menu } = require("electron")
 const path = require("path")
 const fs = require("fs")
 const http = require("http")
@@ -129,6 +129,10 @@ async function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  Menu.setApplicationMenu(null);
+  mainWindow.setMenuBarVisibility(false);
+  mainWindow.setAutoHideMenuBar(true);
 
   const isDev = !app.isPackaged;
 

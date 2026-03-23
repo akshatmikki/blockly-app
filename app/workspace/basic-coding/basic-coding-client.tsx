@@ -3546,21 +3546,22 @@ function BasicCodingPage() {
   const [workspaceReady, setWorkspaceReady] = useState(false);
 
   // ── Variable-name modal (Electron-safe — no window.prompt needed) ──────────
-  const [varModal, setVarModal] = useState({ open: false, inputVal: '' });
+  const [varModal, setVarModal] = useState({ open: false, inputVal: '', title: 'New Variable', label: 'Variable name:' });
   // We store the resolve function in a ref so it survives re-renders
   const varModalResolveRef = useRef<((name: string | null) => void) | null>(null);
   const varModalInputRef = useRef<HTMLInputElement>(null);
 
   /** Show the modal and return a Promise that resolves with the typed name (or null on cancel) */
-  const askVariableName = (defaultVal = 'myVar'): Promise<string | null> =>
-    new Promise((resolve) => {
+  const askVariableName = (defaultVal = 'myVar', title = 'New Variable', label = 'Variable name:'): Promise<string | null> => {
+    return new Promise((resolve) => {
+      setVarModal({ open: true, inputVal: defaultVal, title, label });
       varModalResolveRef.current = resolve;
-      setVarModal({ open: true, inputVal: defaultVal });
       setTimeout(() => {
         varModalInputRef.current?.focus();
         varModalInputRef.current?.select();
       }, 40);
     });
+  };
 
   const confirmVarModal = () => {
     const name = varModalInputRef.current?.value.trim() || varModal.inputVal.trim();
@@ -5344,6 +5345,9 @@ const usesTurtle = ws
           throw new Error("File not found: '" + filename + "'");
         }
         return Sk.builtinFiles["files"][filename];
+      },
+      inputfun: (prompt: string) => {
+        return askVariableName('', 'User Input Request', prompt || 'Enter value:');
       }
     });
 
@@ -5630,14 +5634,14 @@ plt = _FakePlt()
                 justifyContent: 'center', fontSize: '18px',
               }}>🔤</div>
               <span style={{ fontSize: '16px', fontWeight: 700, color: '#222' }}>
-                New Variable
+                {varModal.title}
               </span>
             </div>
 
             {/* Label + Input */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '13px', color: '#555', fontWeight: 600 }}>
-                Variable name:
+                {varModal.label}
               </label>
               <input
                 ref={varModalInputRef}
