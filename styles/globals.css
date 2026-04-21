@@ -1,0 +1,283 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* =====================================================
+   THEME VARIABLES
+===================================================== */
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+
+  --radius: 0.625rem;
+
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --flyout-bg: #8b9aa0;
+}
+
+/* =====================================================
+   DARK MODE
+===================================================== */
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --flyout-bg: #111827;
+}
+
+/* =====================================================
+   TAILWIND THEME BRIDGE
+===================================================== */
+
+@theme inline {
+  --font-sans: 'Geist', 'Geist Fallback';
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+}
+
+/* =====================================================
+   BASE STYLES
+===================================================== */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* =====================================================
+   BLOCKLY CORE
+===================================================== */
+
+.blocklyDiv {
+  width: 100%;
+  height: 100%;
+  /* ❌ DON'T USE TRANSFORM - it breaks layout */
+}
+
+/* Prevent layout bleed */
+.blocklySvg {
+  background-color: var(--background);
+}
+
+/* =====================================================
+   BLOCKLY TOOLBOX (LEFT SIDEBAR)
+===================================================== */
+
+.blocklyToolboxDiv {
+  background: var(--sidebar);
+  border-right: 1px solid var(--sidebar-border);
+  width: 220px;
+  overflow: hidden;
+}
+
+/* Toolbox rows */
+.blocklyTreeRow {
+  height: 36px;
+}
+
+/* Selected category */
+.blocklyTreeRow.blocklyTreeSelected {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* =====================================================
+   BLOCKLY FLYOUT (IMPORTANT FIX)
+===================================================== */
+
+/* Flyout base */
+.blocklyFlyout {
+  background: var(--flyout-bg);
+  border-right: 1px solid var(--border);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+/* When Blockly hides flyout */
+.blocklyFlyout.blocklyHidden {
+  display: none !important;
+}
+
+/* Ensure flyout does NOT reserve space */
+.blocklyFlyout.blocklyHidden * {
+  pointer-events: none !important;
+}
+
+/* =====================================================
+   FLYOUT SCROLLBAR (FIXED)
+===================================================== */
+
+.blocklyFlyoutScrollbar {
+  transition: opacity 0.15s ease;
+}
+
+/* Hide scrollbar when flyout hidden */
+.blocklyFlyout.blocklyHidden .blocklyFlyoutScrollbar {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* =====================================================
+   BLOCK STYLING
+===================================================== */
+
+.blocklyBlockBackground {
+  rx: 10;
+  ry: 10;
+}
+
+.blocklyBlockShadow {
+  opacity: 0.15;
+}
+
+.blocklyText {
+  font-family: Geist, system-ui, sans-serif;
+  font-size: 13px;
+}
+
+/* =====================================================
+   SCROLLBARS
+===================================================== */
+
+.blocklyScrollbarHandle {
+  fill: rgba(100, 116, 139, 0.5);
+}
+
+.blocklyScrollbarBackground {
+  fill: transparent;
+}
+
+/* =====================================================
+   ✅ SIMPLE FONT SIZE FIX - NO SCALING
+===================================================== */
+
+.blocklyText {
+  font-size: 12px !important;
+  font-family: sans-serif !important;
+}
+
+.blocklyEditableText,
+.blocklyDropdownText {
+  font-size: 12px !important;
+}
+
+.blocklyToolboxDiv {
+  font-size: 13px !important;
+}
+
+/* Fix for different DPIs - only rendering quality */
+.blocklyWorkspace {
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =====================================================
+   FLYOUT SCROLLBAR (FIXED)
+===================================================== */
+
+.blocklyFlyoutScrollbar {
+  transition: opacity 0.15s ease;
+}
+
+/* ✅ CRITICAL FIX - Hide scrollbar when flyout hidden */
+/* Hide scrollbar when flyout is hidden */
+.blocklyFlyout.blocklyHidden .blocklyFlyoutScrollbar,
+.blocklyFlyout.blocklyHidden + .blocklyFlyoutScrollbar {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide scrollbar when flyout is closing */
+.blocklyFlyout:not(.blocklyFlyoutOpen) .blocklyFlyoutScrollbar {
+  display: none !important;
+}
+
+/* Force hide orphaned scrollbar */
+.blocklyFlyoutScrollbar {
+  pointer-events: auto;
+}
+
+.blocklyFlyout.blocklyHidden ~ .blocklyFlyoutScrollbar {
+  display: none !important;
+}
+
+/* Remove background + border while typing */
+.blocklyEditableText.editing text {
+  opacity: 0 !important;
+}
+
+/* Hide SVG text when editing */
+.blocklyEditableText.editing > text,
+.blocklyDropdownText.editing > text {
+  display: none !important;
+}
+
+/* Keep HTML input visible */
+.blocklyHtmlInput {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+
+  color: white; /* or var(--foreground) */
+  font-family: monospace;
+  font-size: 12px;
+}
