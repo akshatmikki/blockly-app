@@ -8,12 +8,7 @@ import { Button } from "@/components/ui/button";
 const modules = [
   { title: "Basic\nCoding", description: "Let's learn the basics of Python.", color: "bg-red-800", textColor: "text-black", href: "/workspace/basic-coding" },
   { title: "AI\nCoding", description: "Unlock ML & AI.", color: "bg-purple-700", textColor: "text-white", href: "/workspace/ai-coding" },
-  { title: "Tinker Orbits\nCoding", description: "Explore technology.", color: "bg-amber-800", textColor: "text-white", href: "/workspace/tinker-orbits" },
-  { title: "STEMBOT\nCoding", description: "NLP & ML.", color: "bg-blue-600", textColor: "text-white", href: "/workspace/stembot" },
-  { title: "STEM\nLIGHT", description: "STEM concepts.", color: "bg-indigo-900", textColor: "text-white", href: "/workspace/stem-light" },
-  { title: "MIT APP\nInventor", description: "Create apps.", color: "bg-red-700", textColor: "text-white", href: "/workspace/mit-app" },
-  { title: "Blockly\nGames", description: "Learn with games.", color: "bg-violet-600", textColor: "text-white", href: "/workspace/blockly-games" },
-  { title: "Jupyter\nNotebook", description: "Data science.", color: "bg-orange-600", textColor: "text-white", href: "/workspace/jupyter" },
+  { title: "Microbit\nCoding", description: "Code with micro:bit.", color: "bg-teal-600", textColor: "text-white", href: "/microbit" },
 ];
 
 export default function DashboardPage() {
@@ -68,32 +63,32 @@ export default function DashboardPage() {
 
   /* ---------- LOAD PROJECTS ---------- */
   const loadProjects = async () => {
-  const userId = localStorage.getItem("userId");
+    const userId = localStorage.getItem("userId");
 
-  if (!userId) {
-    setProjects([]);
-    return;
-  }
-
-  try {
-    if (typeof window !== "undefined" && !window.electronAPI) {
-      console.error("Electron API not found");
+    if (!userId) {
       setProjects([]);
       return;
     }
-    const data = await window.electronAPI.getProjects(Number(userId));
 
-    if (Array.isArray(data)) {
-      setProjects(data);
-    } else {
-      console.error("Expected array, got:", data);
+    try {
+      if (typeof window !== "undefined" && !window.electronAPI) {
+        console.error("Electron API not found");
+        setProjects([]);
+        return;
+      }
+      const data = await window.electronAPI.getProjects(Number(userId));
+
+      if (Array.isArray(data)) {
+        setProjects(data);
+      } else {
+        console.error("Expected array, got:", data);
+        setProjects([]);
+      }
+    } catch (err) {
+      console.error("Load projects failed", err);
       setProjects([]);
     }
-  } catch (err) {
-    console.error("Load projects failed", err);
-    setProjects([]);
-  }
-};
+  };
   const handleBackFromCreate = () => {
     if (projects.length > 0) {
       setIsCreatingNewProject(false);
@@ -105,25 +100,25 @@ export default function DashboardPage() {
     }
   };
 
- const loadTutorialCounts = async () => {
-  try {
-    if (typeof window !== "undefined" && !window.electronAPI) {
-      console.error("Electron API not found");
-      return;
+  const loadTutorialCounts = async () => {
+    try {
+      if (typeof window !== "undefined" && !window.electronAPI) {
+        console.error("Electron API not found");
+        return;
+      }
+      const data = await window.electronAPI.getTutorialCounts();
+
+      const mapped: Record<string, number> = {};
+
+      data.forEach((row: any) => {
+        mapped[row.type] = Number(row.tutorial_count);
+      });
+
+      setTutorialCounts(mapped);
+    } catch (err) {
+      console.error("Failed to load tutorial counts", err);
     }
-    const data = await window.electronAPI.getTutorialCounts();
-
-    const mapped: Record<string, number> = {};
-
-    data.forEach((row: any) => {
-      mapped[row.type] = Number(row.tutorial_count);
-    });
-
-    setTutorialCounts(mapped);
-  } catch (err) {
-    console.error("Failed to load tutorial counts", err);
-  }
-};
+  };
 
   /* ---------- AUTH ---------- */
   useEffect(() => {
@@ -138,43 +133,43 @@ export default function DashboardPage() {
 
   /* ---------- CREATE PROJECT ---------- */
   const createProjectAndRedirect = async () => {
-  const userId = localStorage.getItem("userId");
+    const userId = localStorage.getItem("userId");
 
-  if (!projectName.trim()) {
-    alert("Project name required");
-    return;
-  }
-
-  try {
-    if (typeof window !== "undefined" && !window.electronAPI) {
-      alert("This feature is only available in the Desktop application.");
+    if (!projectName.trim()) {
+      alert("Project name required");
       return;
     }
-    const response = await window.electronAPI.createProject({
-      projectName,
-      userId: Number(userId),
-    });
 
-    if (!response?.success) {
+    try {
+      if (typeof window !== "undefined" && !window.electronAPI) {
+        alert("This feature is only available in the Desktop application.");
+        return;
+      }
+      const response = await window.electronAPI.createProject({
+        projectName,
+        userId: Number(userId),
+      });
+
+      if (!response?.success) {
+        alert("Failed to create project");
+        return;
+      }
+
+      // ✅ success
+      await loadProjects(); // Refresh projects so the back-navigation cache has the latest
+      setShowModal(false);
+      setProjectName("");
+      setIsCreatingNewProject(false);
+
+      router.push(
+        `${selectedModule.href}?projectId=${response.projectId}`
+      );
+
+    } catch (error) {
+      console.error("Create project failed:", error);
       alert("Failed to create project");
-      return;
     }
-
-    // ✅ success
-    await loadProjects(); // Refresh projects so the back-navigation cache has the latest
-    setShowModal(false);
-    setProjectName("");
-    setIsCreatingNewProject(false);
-
-    router.push(
-      `${selectedModule.href}?projectId=${response.projectId}`
-    );
-
-  } catch (error) {
-    console.error("Create project failed:", error);
-    alert("Failed to create project");
-  }
-};
+  };
 
   /* ---------- SELECT PROJECT ---------- */
   const openProject = (projectId: number) => {
