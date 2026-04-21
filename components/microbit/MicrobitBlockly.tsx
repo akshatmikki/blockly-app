@@ -24,6 +24,27 @@ export default function MicrobitBlockly() {
       }
     };
 
+    Blockly.Blocks['on_button_pressed'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("on button")
+            .appendField(new Blockly.FieldDropdown([["A", "A"], ["B", "B"], ["A+B", "AB"]]), "BUTTON")
+            .appendField("pressed");
+        this.appendStatementInput("STACK");
+        this.setColour("#d400d4");
+      }
+    };
+
+    Blockly.Blocks['show_leds'] = {
+      init: function() {
+        this.appendDummyInput().appendField("show leds");
+        // Simplified representation for now
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour("#5c2d91");
+      }
+    };
+
     Blockly.Blocks['forever'] = {
       init: function() {
         this.appendDummyInput()
@@ -54,25 +75,39 @@ export default function MicrobitBlockly() {
           kind: "category",
           name: "Input",
           colour: "#d400d4",
-          contents: [{ kind: "block", type: "logic_boolean" }],
+          contents: [
+            { kind: "block", type: "on_button_pressed" },
+            { kind: "block", type: "on_gesture" },
+            { kind: "block", type: "on_pin_pressed" },
+          ],
         },
         {
           kind: "category",
           name: "Music",
           colour: "#e3008c",
-          contents: [{ kind: "block", type: "math_number" }],
+          contents: [
+            { kind: "block", type: "play_melody" },
+            { kind: "block", type: "play_tone" },
+            { kind: "block", type: "rest" },
+          ],
         },
         {
           kind: "category",
           name: "Led",
           colour: "#5c2d91",
-          contents: [{ kind: "block", type: "math_number" }],
+          contents: [
+            { kind: "block", type: "show_leds" },
+            { kind: "block", type: "plot_bar_graph" },
+          ],
         },
         {
           kind: "category",
           name: "Radio",
           colour: "#e3008c",
-          contents: [{ kind: "block", type: "math_number" }],
+          contents: [
+            { kind: "block", type: "radio_send_number" },
+            { kind: "block", type: "radio_on_received_number" },
+          ],
         },
         {
           kind: "category",
