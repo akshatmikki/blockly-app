@@ -32,7 +32,7 @@
     }
   },
   "include": [
-    "global.d.ts",
+    "app/global.d.ts",
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
