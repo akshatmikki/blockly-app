@@ -66,6 +66,8 @@
     "next": "^16.1.6",
     "next-themes": "^0.4.6",
     "pg": "^8.16.3",
+    "pxt-core": "^12.3.8",
+    "pxt-microbit": "^8.1.12",
     "react": "19.2.0",
     "react-day-picker": "9.8.0",
     "react-dom": "19.2.0",
@@ -101,40 +103,34 @@
     "wait-on": "^9.0.4"
   },
   "build": {
-  "appId": "com.blockly.desktop",
-  "productName": "Blockly Desktop",
-
-  "files": [
-    "electron.js",
-    "preload.js",
-    "package.json",
-    "out/**/*"
-  ],
-
-  "extraResources": [
-    {
-      "from": "database.sqlite",
-      "to": "database.sqlite"
+    "appId": "com.blockly.desktop",
+    "productName": "Blockly Desktop",
+    "files": [
+      "electron.js",
+      "preload.js",
+      "package.json",
+      "out/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "database.sqlite",
+        "to": "database.sqlite"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.developer-tools"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
     }
-  ],
-
-  "win": {
-    "target": "nsis"
-  },
-
-  "mac": {
-    "target": "dmg",
-    "category": "public.app-category.developer-tools"
-  },
-
-  "linux": {
-    "target": "AppImage"
-  },
-
-  "nsis": {
-    "oneClick": false,
-    "perMachine": false,
-    "allowToChangeInstallationDirectory": true
   }
-}
 }

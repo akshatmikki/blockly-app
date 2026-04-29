@@ -26,4 +26,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   logoutUser: () =>
     ipcRenderer.invoke("logout-user"),
+  compileMakeCode: (data) =>
+    ipcRenderer.invoke("compile-makecode", data),
 })

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 const modules = [
   { title: "Basic\nCoding", description: "Let's learn the basics of Python.", color: "bg-red-800", textColor: "text-black", href: "/workspace/basic-coding" },
   { title: "AI\nCoding", description: "Unlock ML & AI.", color: "bg-purple-700", textColor: "text-white", href: "/workspace/ai-coding" },
-  { title: "Microbit\nCoding", description: "Code with micro:bit.", color: "bg-teal-600", textColor: "text-white", href: "/microbit" },
+  { title: "Microbit\nCoding", description: "Code with micro:bit.", color: "bg-teal-600", textColor: "text-white", href: "/workspace/Microbit" },
 ];
 
 export default function DashboardPage() {
