@@ -1,4 +1,4 @@
-// /// <reference path="../../../../node_modules/pxt-microbit/node_modules/pxt-core/built/pxtlib.d.ts" />
+/// <reference path="../../../../node_modules/pxt-microbit/node_modules/pxt-core/built/pxtlib.d.ts" />
 
 
 import * as Blockly from "blockly";

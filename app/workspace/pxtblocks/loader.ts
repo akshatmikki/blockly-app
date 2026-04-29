@@ -1,4 +1,4 @@
-// /// <reference path="../built/pxtlib.d.ts" />
+/// <reference path="../built/pxtlib.d.ts" />
 import * as Blockly from "blockly";
 import { optionalDummyInputPrefix, optionalInputWithFieldPrefix, provider } from "./constants";
 import { initExpandableBlock, initVariableArgsBlock, appendMutation, initVariableReporterArgs } from "./composableMutations";

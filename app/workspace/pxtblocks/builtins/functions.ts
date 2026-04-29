@@ -1,4 +1,4 @@
-// /// <reference path="../../built/pxtlib.d.ts" />
+/// <reference path="../../built/pxtlib.d.ts" />
 
 import * as Blockly from "blockly"
 import { installBuiltinHelpInfo } from "../help";
