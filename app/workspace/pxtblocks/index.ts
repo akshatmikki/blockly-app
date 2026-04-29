@@ -10,7 +10,7 @@ export * from "./plugins/comments";
 export * from "./compiler/compiler";
 export * from "./compiler/environment";
 export * from "./loader";
-export * from "./layout";
+export * from "./pxt-layout";
 export * from "./render";
 export * from "./toolbox";
 export * from "./fields";

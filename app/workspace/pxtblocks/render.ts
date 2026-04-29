@@ -2,7 +2,7 @@
 /// <reference path="../localtypings/pxteditor.d.ts" />
 
 import * as Blockly from "blockly";
-import { verticalAlign, flow, cleanUpBlocklySvg, splitSvg } from "./layout";
+import { verticalAlign, flow, cleanUpBlocklySvg, splitSvg } from "./pxt-layout";
 import { clearWithoutEvents, domToWorkspaceNoEvents } from "./importer";
 
 let workspace: Blockly.WorkspaceSvg;

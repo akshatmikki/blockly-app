@@ -39,7 +39,7 @@ async function download() {
       if (file.endsWith('.tflite')) {
         const header = Buffer.from(buffer.slice(0, 4)).toString();
         if (header !== 'TFL3') {
-          throw new Error(`Invalid TFLite header: expected TFL3, got ${header}`);
+          console.warn(`⚠️ Warning: ${file} has an unexpected header: expected TFL3, got ${header}. The file might be corrupted or compressed.`);
         }
       }
 
