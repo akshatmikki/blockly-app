@@ -4,7 +4,7 @@ export class BreakpointIcon extends Blockly.icons.Icon {
     static readonly type = new Blockly.icons.IconType("breakpoint");
 
     protected isSet_ = false;
-    protected breakpointSvg: SVGCircleElement;
+    protected breakpointSvg!: SVGCircleElement;
 
     constructor(sourceBlock: Blockly.Block, protected readonly onStateChange: (block: Blockly.Block, isSet: boolean) => void) {
         super(sourceBlock);
