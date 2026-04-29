@@ -6,7 +6,13 @@ declare var pxtsim: any;
 declare function lf(text: string, ...args: any[]): string;
 
 declare namespace pxt {
-    type Map<T> = { [index: string]: T };
+    export type Map<T> = { [index: string]: T };
+    export var BrowserUtils: any;
+    export var Util: any;
+    export var blocks: any;
+    export var appTarget: any;
+    export var reportException: any;
+    export var webConfig: any;
 }
 
 declare namespace pxt.editor {
@@ -28,6 +34,10 @@ declare namespace pxtc {
     export var TS_BREAK_TYPE: string;
     export var TS_CONTINUE_TYPE: string;
     export var FUNCTION_DEFINITION_TYPE: string;
+}
+
+declare namespace ts {
+    export var pxtc: any;
 }
 
 declare namespace ts.pxtc {
