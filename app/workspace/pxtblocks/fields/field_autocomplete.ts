@@ -1,4 +1,4 @@
-/// <reference path="../../built/pxtlib.d.ts" />
+// /// <reference path="../../built/pxtlib.d.ts" />
 
 import * as Blockly from "blockly";
 import { FieldCustom, FieldCustomOptions, getAllFields } from "./field_utils";

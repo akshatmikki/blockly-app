@@ -1,5 +1,5 @@
-/// <reference path="../built/pxtlib.d.ts" />
-/// <reference path="../localtypings/pxteditor.d.ts" />
+// /// <reference path="../built/pxtlib.d.ts" />
+// /// <reference path="../localtypings/pxteditor.d.ts" />
 
 import * as Blockly from "blockly";
 import { verticalAlign, flow, cleanUpBlocklySvg, splitSvg } from "./pxt-layout";

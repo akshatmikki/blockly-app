@@ -1,4 +1,4 @@
-/// <reference path="../../built/pxtlib.d.ts" />
+// /// <reference path="../../built/pxtlib.d.ts" />
 import * as Blockly from "blockly";
 import { flow, screenshotAsync, screenshotEnabled, setCollapsedAll } from "../pxt-layout";
 import { openWorkspaceSearch } from "../external";

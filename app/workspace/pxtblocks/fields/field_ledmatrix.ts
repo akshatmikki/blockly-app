@@ -1,5 +1,5 @@
-/// <reference path="../../built/pxtlib.d.ts" />
-/// <reference path="../../built/pxtsim.d.ts" />
+// /// <reference path="../../built/pxtlib.d.ts" />
+// /// <reference path="../../built/pxtsim.d.ts" />
 
 import * as Blockly from "blockly";
 import { FieldMatrix } from "./field_matrix";

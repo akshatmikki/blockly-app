@@ -1,4 +1,4 @@
-/// <reference path="../built/pxtlib.d.ts" />
+// /// <reference path="../built/pxtlib.d.ts" />
 
 export function getBlocksWithType(parent: Document | Element, type: string) {
     return getChildrenWithAttr(parent, "block", "type", type).concat(getChildrenWithAttr(parent, "shadow", "type", type));
