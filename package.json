@@ -109,7 +109,7 @@
       "electron.js",
       "preload.js",
       "package.json",
-      "out/**/*"
+      "out"
     ],
     "extraResources": [
       {

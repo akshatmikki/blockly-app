@@ -12,20 +12,32 @@ let staticServer
 let packagedAppUrl = null
 
 function resolveOutDir() {
+  const isPackaged = app.isPackaged
+  const appPath = app.getAppPath()
+  
   const candidates = [
-    path.join(app.getAppPath(), "out"),
-    path.join(process.resourcesPath, "out"),
+    path.join(appPath, "out"),
     path.join(process.resourcesPath, "app.asar", "out"),
+    path.join(process.resourcesPath, "out"),
     path.join(__dirname, "out"),
   ]
 
+  console.log("Checking outDir candidates:", candidates)
+
   for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return candidate
+    try {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+        console.log("Selected outDir:", candidate)
+        return candidate
+      }
+    } catch (e) {
+      // Ignore errors for non-existent paths
     }
   }
 
-  return candidates[0]
+  const defaultPath = isPackaged ? path.join(appPath, "out") : path.join(__dirname, "out")
+  console.warn("No candidate outDir found, falling back to:", defaultPath)
+  return defaultPath
 }
 
 function getContentType(filePath) {

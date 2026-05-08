@@ -19,7 +19,7 @@ msg.LOGIC_NEGATE_TITLE = "not %1";
 msg.LOGIC_OPERATION_AND = "and";
 msg.LOGIC_OPERATION_OR = "or";
 import { javascriptGenerator, Order } from "blockly/javascript";
-import { Search, Code, Info } from "lucide-react";
+import { Search, Code, Info, Download } from "lucide-react";
 
 import "./index"; // Force block evaluation in the correct PXT order to avoid circular dependencies
 
