@@ -5,6 +5,8 @@ import {
   buildPxtProjectFiles,
   getPxtSimulatorHost,
   getPxtSimulatorUrl,
+  getRemotePxtSimulatorHost,
+  getRemotePxtSimulatorUrl,
   postToSimulator,
   sanitizeSimulatorTypescript,
   type PxtSimulatorControl,
@@ -37,8 +39,36 @@ export default function PxtSimulatorPane({ code, isCompiling }: Props) {
   const [frameKey, setFrameKey] = useState(0);
   const [useUrlMode, setUseUrlMode] = useState(false);
 
-  const simulatorUrl = useMemo(() => getPxtSimulatorUrl(), []);
-  const simulatorHost = useMemo(() => getPxtSimulatorHost(), []);
+  const [simulatorUrl, setSimulatorUrl] = useState(() => getPxtSimulatorUrl());
+  const [simulatorHost, setSimulatorHost] = useState(() => getPxtSimulatorHost());
+
+  useEffect(() => {
+    let canceled = false;
+
+    // If the local bundled simulator isn't present (common in dev/build misconfig),
+    // fall back to the hosted MakeCode simulator so the iframe doesn't show "Not Found".
+    const maybeFallback = async () => {
+      if (typeof window === "undefined") return;
+      if (!simulatorHost.startsWith("/")) return;
+
+      try {
+        const res = await fetch(simulatorUrl, { method: "GET" });
+        if (!res.ok) throw new Error(String(res.status));
+      } catch {
+        if (canceled) return;
+        setSimulatorHost(getRemotePxtSimulatorHost());
+        setSimulatorUrl(getRemotePxtSimulatorUrl());
+      }
+    };
+
+    void maybeFallback();
+
+    return () => {
+      canceled = true;
+    };
+    // Run only once on mount; do not include simulatorUrl/Host in deps to avoid loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const simulatorOrigin = useMemo(() => {
     try {

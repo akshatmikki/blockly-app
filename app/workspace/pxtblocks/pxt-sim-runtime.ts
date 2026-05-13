@@ -11,10 +11,24 @@ type SimulatorMessage =
   | { type: "restartsimulator" }
   | { type: "stopsimulator" };
 
-// Use the embedded static editor path. In Electron, this points to the local public/pxt-editor folder.
-const DEFAULT_PXT_HOST = typeof window !== "undefined" && window.location.hostname === "localhost" 
-  ? "/pxt-editor" 
-  : "./pxt-editor";
+// Use the embedded static editor path.
+// IMPORTANT: must be absolute. If we use a relative path like "./pxt-editor" and the app is on
+// a nested route (e.g. "/editor"), the iframe will resolve to "/editor/pxt-editor/..." and 404.
+const ENV_PXT_HOST =
+  typeof process !== "undefined"
+    ? (process.env.NEXT_PUBLIC_PXT_EDITOR_BASE as string | undefined)
+    : undefined;
+
+const FALLBACK_REMOTE_HOST = "https://makecode.microbit.org";
+
+function normalizeHost(host: string) {
+  const trimmed = host.trim();
+  if (!trimmed) return "/pxt-editor";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed.replace(/\/+$/, "");
+  return `/${trimmed.replace(/^\/+/, "").replace(/\/+$/, "")}`;
+}
+
+const DEFAULT_PXT_HOST = normalizeHost(ENV_PXT_HOST ?? "/pxt-editor");
 
 export function getPxtSimulatorHost() {
   return DEFAULT_PXT_HOST;
@@ -23,6 +37,14 @@ export function getPxtSimulatorHost() {
 export function getPxtSimulatorUrl() {
   const host = getPxtSimulatorHost();
   return `${host}/run.html?server=1&simTop=0`;
+}
+
+export function getRemotePxtSimulatorHost() {
+  return FALLBACK_REMOTE_HOST;
+}
+
+export function getRemotePxtSimulatorUrl() {
+  return `${FALLBACK_REMOTE_HOST}/run.html?server=1&simTop=0`;
 }
 
 function containsRepeatedSpriteCreation(code: string) {
